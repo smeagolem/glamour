@@ -1,7 +1,7 @@
 {
     "recommendations": [
         "bungcip.better-toml",
-        "rust-lang.rust",
+        "matklad.rust-analyzer",
         "slevesque.shader",
     ]
 }
