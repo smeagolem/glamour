@@ -41,83 +41,189 @@ impl Layer {
     }
 }
 
+use std::time::Instant;
+
+use glutin::event::Event;
+use glutin::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
+use glutin::window::WindowBuilder;
+use glutin::{dpi, ContextBuilder, ContextWrapper};
+
+use imgui;
+
 pub struct Application {
-    glfw: glfw::Glfw,
-    window: glfw::Window,
-    events: std::sync::mpsc::Receiver<(f64, glfw::WindowEvent)>,
+    event_loop: EventLoop<()>,
+    windowed_context: ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window>,
+    imgui: imgui::Context,
+    platform: imgui_winit_support::WinitPlatform,
+    imgui_renderer: imgui_opengl_renderer::Renderer,
+    last_frame: Instant,
     layers: Vec<Layer>,
 }
 
 impl Application {
     pub fn new(title: &str, width: u32, height: u32) -> Self {
-        use glfw::Context;
-        // TODO: abstract to Window struct
-        // TODO: create window gl context
-        let mut glfw = glfw::init(glfw::FAIL_ON_ERRORS).unwrap();
-        glfw.window_hint(glfw::WindowHint::ContextVersion(4, 1));
-        glfw.window_hint(glfw::WindowHint::OpenGlForwardCompat(true));
-        glfw.window_hint(glfw::WindowHint::OpenGlProfile(
-            glfw::OpenGlProfileHint::Core,
-        ));
+        let event_loop = EventLoop::new();
+        let wb = WindowBuilder::new()
+            .with_title(title)
+            .with_inner_size(dpi::LogicalSize { width, height });
 
-        let (mut window, events) = glfw
-            .create_window(width, height, title, glfw::WindowMode::Windowed)
-            .expect("Failed to create GLFW window.");
+        let windowed_context = ContextBuilder::new()
+            .with_vsync(true)
+            .with_multisampling(0)
+            .build_windowed(wb, &event_loop)
+            .unwrap();
+        let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
-        window.set_key_polling(true);
-        window.make_current();
+        let mut imgui = imgui::Context::create();
 
-        // opengl is state machine, you set up data in vram, then tell it to draw whatever is in there.
-        gl::load_with(|s| window.get_proc_address(s) as *const _);
+        let mut platform = imgui_winit_support::WinitPlatform::init(&mut imgui);
+        platform.attach_window(
+            imgui.io_mut(),
+            windowed_context.window(),
+            imgui_winit_support::HiDpiMode::Default,
+        );
+
+        // fonts
+        let hidpi_factor = platform.hidpi_factor();
+        let font_size = (14.0 * hidpi_factor) as f32;
+        imgui.fonts().add_font(&[imgui::FontSource::TtfData {
+            data: include_bytes!("../resources/SourceCodePro-Regular.ttf"),
+            size_pixels: font_size,
+            config: Some(imgui::FontConfig::default()),
+        }]);
+        imgui.io_mut().font_global_scale = (1.0 / hidpi_factor) as f32;
+        imgui.fonts().build_rgba32_texture();
+
+        // load OpenGl
+        gl::load_with(|s| windowed_context.context().get_proc_address(s) as *const _);
+
+        // set imgui renderer to use raw OpenGL
+        let imgui_renderer = imgui_opengl_renderer::Renderer::new(&mut imgui, |s| {
+            windowed_context.context().get_proc_address(s) as _
+        });
+
+        let last_frame = Instant::now();
 
         unsafe {
             gl::Viewport(0, 0, width as i32, height as i32);
         }
 
         Application {
-            glfw,
-            window,
-            events,
+            event_loop,
+            windowed_context,
+            imgui,
+            platform,
+            imgui_renderer,
+            last_frame,
             layers: Vec::new(),
         }
     }
 
+    pub fn run(self) {
+        let mut last_frame = self.last_frame;
+        let mut platform = self.platform;
+        let windowed_context = self.windowed_context;
+        let layers = self.layers;
+        let mut imgui = self.imgui;
+        let imgui_renderer = self.imgui_renderer;
+        self.event_loop.run(
+            move |event: Event<()>,
+                  _: &EventLoopWindowTarget<()>,
+                  control_flow: &mut ControlFlow| {
+                // println!("{:?}", event);
+                *control_flow = ControlFlow::Poll;
+
+                match event {
+                    Event::NewEvents(_) => {
+                        // other application-specific logic
+                        last_frame = imgui.io_mut().update_delta_time(last_frame);
+                    }
+                    Event::MainEventsCleared => {
+                        // other application-specific logic
+                        platform
+                            .prepare_frame(imgui.io_mut(), windowed_context.window()) // step 4
+                            .expect("Failed to prepare frame");
+                        windowed_context.window().request_redraw();
+                    }
+                    Event::LoopDestroyed => (),
+                    Event::RedrawRequested(_) => {
+                        // application-specific rendering *under the UI*
+                        unsafe {
+                            gl::ClearColor(1.0, 0.5, 0.7, 1.0);
+                            gl::Clear(gl::COLOR_BUFFER_BIT);
+                        }
+
+                        for layer in &layers {
+                            layer.on_update();
+                        }
+
+                        // construct the UI
+                        let ui = imgui.frame();
+                        imgui::Window::new(imgui::im_str!("Hello world"))
+                            .size([300.0, 100.0], imgui::Condition::FirstUseEver)
+                            .build(&ui, || {
+                                ui.text(imgui::im_str!("Hello world!"));
+                                ui.text(imgui::im_str!("こんにちは世界！"));
+                                ui.text(imgui::im_str!("This...is...imgui-rs!"));
+                                ui.separator();
+                                let mouse_pos = ui.io().mouse_pos;
+                                ui.text(format!(
+                                    "Mouse Position: ({:.1},{:.1})",
+                                    mouse_pos[0], mouse_pos[1]
+                                ));
+                            });
+                        ui.show_demo_window(&mut true);
+                        platform.prepare_render(&ui, windowed_context.window());
+                        // render the UI with a renderer
+                        imgui_renderer.render(ui);
+
+                        // application-specific rendering *over the UI*
+
+                        windowed_context.swap_buffers().unwrap();
+                    }
+                    event => {
+                        platform.handle_event(imgui.io_mut(), windowed_context.window(), &event);
+
+                        // other application-specific event handling
+                        use glutin::event::{
+                            ElementState, KeyboardInput, ModifiersState, VirtualKeyCode,
+                            WindowEvent,
+                        };
+                        match event {
+                            Event::WindowEvent { event, .. } => match event {
+                                WindowEvent::Resized(physical_size) => {
+                                    windowed_context.resize(physical_size)
+                                }
+                                WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+                                WindowEvent::KeyboardInput {
+                                    input:
+                                        KeyboardInput {
+                                            virtual_keycode: Some(virtual_code),
+                                            state,
+                                            modifiers,
+                                            ..
+                                        },
+                                    ..
+                                } => match (virtual_code, state, modifiers) {
+                                    (VirtualKeyCode::Q, _, ModifiersState::LOGO) => {
+                                        *control_flow = ControlFlow::Exit
+                                    }
+                                    (VirtualKeyCode::W, ElementState::Pressed, _) => {
+                                        println!("W");
+                                    }
+                                    _ => (),
+                                },
+                                _ => (),
+                            },
+                            _ => (),
+                        }
+                    }
+                }
+            },
+        );
+    }
+
     pub fn push_layer(&mut self, layer: Layer) {
         self.layers.push(layer);
-    }
-
-    pub fn run(&mut self) {
-        use glfw::Context;
-
-        while !self.window.should_close() {
-            // input
-            let events = glfw::flush_messages(&self.events).collect::<Vec<_>>();
-            for (_, event) in events {
-                self.on_event(event);
-            }
-
-            // TODO: calculate delta_time
-            // TODO: update layers
-            for layer in self.layers.iter() {
-                layer.on_update();
-            }
-
-            // update window
-            self.window.swap_buffers();
-            self.glfw.poll_events();
-        }
-
-        // self.window.set_should_close(true);
-    }
-
-    fn on_event(&mut self, event: glfw::WindowEvent) {
-        if matches!(
-            event,
-            glfw::WindowEvent::Key(glfw::Key::Escape, _, glfw::Action::Press, _)
-        ) {
-            self.window.set_should_close(true);
-        }
-
-        // TODO: loop through all layers and match events to on_event?
     }
 }

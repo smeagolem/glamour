@@ -6,18 +6,14 @@ edition = "2018"
 default-run = "sandbox"
 
 [dependencies]
+anyhow = "1.0.28"
 gl = "0.14.0"
-anyhow = "1.0.27"
-nalgebra-glm = "0.6.0"
-memoffset = "0.5.4"
-
 glutin = "0.23.0"
 imgui = "0.3.0"
-imgui-winit-support = "0.3.1"
 imgui-opengl-renderer = "0.7.0"
-
-[dependencies.glfw]
-git = "https://github.com/bjz/glfw-rs.git"
+imgui-winit-support = "0.3.1"
+memoffset = "0.5.4"
+nalgebra-glm = "0.6.0"
 
 [lib]
 name = "glamour"
@@ -26,7 +22,3 @@ path = "src/glamour/lib.rs"
 [[bin]]
 name = "sandbox"
 path = "src/sandbox/bin.rs"
-
-[[bin]]
-name = "imgui_test"
-path = "src/imgui_test/bin.rs"
