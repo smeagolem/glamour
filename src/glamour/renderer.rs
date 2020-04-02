@@ -1,7 +1,7 @@
 use crate::IndexBuffer;
-use crate::{Program, Shader};
 use crate::Vertex;
 use crate::VertexBuffer;
+use crate::{Program, Shader};
 use anyhow::Result;
 use gl;
 use std::ffi::CString;
@@ -36,7 +36,7 @@ impl ForwardRenderer {
         };
 
         unsafe {
-            gl::Uniform4f(u_color, 1.0, 0.5, 0.2, 1.0);
+            gl::Uniform4f(u_color, 1.0, 0.0, 0.2, 1.0);
         }
 
         // set up vertex buffer object
