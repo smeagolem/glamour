@@ -133,17 +133,20 @@ impl Application {
         let layers = self.layers;
         let mut imgui = self.imgui;
         let imgui_renderer = self.imgui_renderer;
+        let mut frame_time = std::time::Duration::new(0, 0);
         self.event_loop.run(
             move |event: Event<()>,
                   _: &EventLoopWindowTarget<()>,
                   control_flow: &mut ControlFlow| {
                 // println!("{:?}", event);
                 *control_flow = ControlFlow::Poll;
-
                 match event {
                     Event::NewEvents(_) => {
                         // other application-specific logic
-                        last_frame = imgui.io_mut().update_delta_time(last_frame);
+
+                        let this_frame = imgui.io_mut().update_delta_time(last_frame);
+                        frame_time = this_frame.duration_since(last_frame);
+                        last_frame = this_frame;
                     }
                     Event::MainEventsCleared => {
                         // other application-specific logic
@@ -169,6 +172,10 @@ impl Application {
                         imgui::Window::new(imgui::im_str!("Hello world"))
                             .size([300.0, 100.0], imgui::Condition::FirstUseEver)
                             .build(&ui, || {
+                                ui.text(format!(
+                                    "Frame: {:.3} ms",
+                                    frame_time.as_secs_f64() * 1000.0
+                                ));
                                 ui.text(imgui::im_str!("Hello world!"));
                                 ui.text(imgui::im_str!("こんにちは世界！"));
                                 ui.text(imgui::im_str!("This...is...imgui-rs!"));
