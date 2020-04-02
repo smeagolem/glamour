@@ -63,9 +63,10 @@ pub struct Application {
 impl Application {
     pub fn new(title: &str, width: u32, height: u32) -> Self {
         let event_loop = EventLoop::new();
+        let logical_size = dpi::LogicalSize { width, height };
         let wb = WindowBuilder::new()
             .with_title(title)
-            .with_inner_size(dpi::LogicalSize { width, height });
+            .with_inner_size(logical_size);
 
         let windowed_context = ContextBuilder::new()
             .with_vsync(true)
@@ -104,8 +105,14 @@ impl Application {
 
         let last_frame = Instant::now();
 
+        let physical_size = logical_size.to_physical::<u32>(hidpi_factor);
         unsafe {
-            gl::Viewport(0, 0, width as i32, height as i32);
+            gl::Viewport(
+                0,
+                0,
+                physical_size.width as i32,
+                physical_size.height as i32,
+            );
         }
 
         Application {
