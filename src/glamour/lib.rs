@@ -173,7 +173,7 @@ impl Application {
                             .size([300.0, 100.0], imgui::Condition::FirstUseEver)
                             .build(&ui, || {
                                 ui.text(format!(
-                                    "Frame: {:.3} ms",
+                                    "Frame Time: {:.3} ms",
                                     frame_time.as_secs_f64() * 1000.0
                                 ));
                                 ui.text(imgui::im_str!("Hello world!"));
