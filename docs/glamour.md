@@ -1,1 +1,1 @@
-<iframe src="/glamour/doc/glamour" height="100%" width="100%" style="width: 100vw; height: calc(100vh - 3.6rem); position: fixed; top: 0; left: 0; border: none"></iframe>
+<iframe src="/doc/glamour" height="100%" width="100%" style="width: 100vw; height: calc(100vh - 3.6rem); position: fixed; top: 0; left: 0; border: none"></iframe>
