@@ -37,13 +37,28 @@ jobs:
     - name: Test
       run: cargo test
 
-  docs:
-    needs: build
-    runs-on: ubuntu-latest
+    # Docs
 
-    steps:
-    - name: Checkout
-      uses: actions/checkout@v2
+    - name: Setup Node
+      uses: actions/setup-node@v1
+      with:
+        node-version: '12.x'
+
+    - name: Get cache directory path
+      id: yarn-cache-dir-path
+      run: echo "::set-output name=dir::$(yarn cache dir)"
+
+    - name: Restore dependency cache
+      uses: actions/cache@v1
+      id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
+      with:
+        path: ${{ steps.yarn-cache-dir-path.outputs.dir }}
+        key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-yarn-
+
+    - name: Install dependencies
+      run: yarn install --frozen-lockfile
 
     - name: Build Glamour Docs
       run: |
@@ -51,32 +66,13 @@ jobs:
         rm -rf ./docs/.vuepress/public/debug ./docs/.vuepress/public/.rustc_info.json
 
     - name: Build Vuepress Docs
-      run: |
-        yarn --frozen-lockfile
-        yarn build
-
-    # - name: Deploy Docs
-    #   run: |
-    #     # navigate into the build output directory
-    #     cd ./docs/.vuepress/dist
-
-    #     # if you are deploying to a custom domain
-    #     # echo 'www.example.com' > CNAME
-
-    #     git init
-    #     git add -A
-    #     git commit -m '🚀 deploy docs 📝'
-
-    #     # if you are deploying to https://<USERNAME>.github.io/<REPO>
-    #     git push -f git@github.com:smeagolem/ict40010.git master:gh-pages
-
-    #     cd -
+      run: yarn build
 
     - name: Deploy Docs
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
         ACCESS_TOKEN: ${{ secrets.GLAMOUR_DOCS_DEPLOY }}
         BRANCH: gh-pages # The branch the action should deploy to.
-        FOLDER: ./docs/.vuepress/dist # The folder the action should deploy.
+        FOLDER: docs/.vuepress/dist # The folder the action should deploy.
         COMMIT_MESSAGE: 🚀 deploy docs 📝
 
