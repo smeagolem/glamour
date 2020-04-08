@@ -6,49 +6,49 @@ on:
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
-
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
         path: ~/.cargo/registry
         key: ${{ runner.os }}-cargo-registry-${{ hashFiles('**/Cargo.lock') }}
-
+        restore-keys: |
+          ${{ runner.os }}-cargo-registry-
     - name: Cache cargo index
       uses: actions/cache@v1
       with:
         path: ~/.cargo/git
         key: ${{ runner.os }}-cargo-index-${{ hashFiles('**/Cargo.lock') }}
-
+        restore-keys: |
+          ${{ runner.os }}-cargo-index-
     - name: Cache cargo build
       uses: actions/cache@v1
       with:
         path: target
         key: ${{ runner.os }}-cargo-build-target-${{ hashFiles('**/Cargo.lock') }}
-
+        restore-keys: |
+          ${{ runner.os }}-cargo-build-target-
     - name: Build
       run: cargo build
-
     - name: Test
       run: cargo test
 
-    # Docs
-
+  docs:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Setup Node
       uses: actions/setup-node@v1
       with:
         node-version: '12.x'
-
-    - name: Get cache directory path
+    - name: Get yarn cache directory path
       id: yarn-cache-dir-path
       run: echo "::set-output name=dir::$(yarn cache dir)"
-
-    - name: Restore dependency cache
+    - name: Restore yarn dependency cache
       uses: actions/cache@v1
       id: yarn-cache # use this to check for `cache-hit` (`steps.yarn-cache.outputs.cache-hit != 'true'`)
       with:
@@ -56,23 +56,52 @@ jobs:
         key: ${{ runner.os }}-yarn-${{ hashFiles('**/yarn.lock') }}
         restore-keys: |
           ${{ runner.os }}-yarn-
-
     - name: Install dependencies
       run: yarn install --frozen-lockfile
-
+    - name: Cache cargo registry
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/registry
+        key: ${{ runner.os }}-cargo-docs-registry-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-docs-registry-
+    - name: Cache cargo index
+      uses: actions/cache@v1
+      with:
+        path: ~/.cargo/git
+        key: ${{ runner.os }}-cargo-docs-index-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-docs-index-
+    - name: Cache cargo build
+      uses: actions/cache@v1
+      with:
+        path: target
+        key: ${{ runner.os }}-cargo-docs-build-target-${{ hashFiles('**/Cargo.lock') }}
+        restore-keys: |
+          ${{ runner.os }}-cargo-docs-build-target-
     - name: Build Glamour Docs
       run: |
         cargo doc --lib --no-deps --target-dir ./docs/.vuepress/public/
         rm -rf ./docs/.vuepress/public/debug ./docs/.vuepress/public/.rustc_info.json
-
     - name: Build Vuepress Docs
       run: yarn build
+    - name: Upload docs
+      uses: actions/upload-artifact@v1
+      with:
+        name: docs
+        path: docs/.vuepress/dist
 
+  deploy:
+    needs: [build, docs]
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download docs
+      uses: actions/download-artifact@v1
+      with:
+        name: docs
     - name: Deploy Docs
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
         ACCESS_TOKEN: ${{ secrets.GLAMOUR_DOCS_DEPLOY }}
         BRANCH: gh-pages # The branch the action should deploy to.
         FOLDER: docs/.vuepress/dist # The folder the action should deploy.
-        COMMIT_MESSAGE: 🚀 deploy docs 📝
-
