@@ -30,10 +30,18 @@ impl Layer {
         }
     }
 
-    pub fn on_update(&self) {
+    pub fn on_fixed_update(&self) {
+        // caculate physics lol
+    }
+
+    pub fn on_frame_update(&self) {
         self.fr
             .render()
             .expect(format!("Failed to render layer: {}", self.name).as_str());
+    }
+
+    pub fn on_imgui_update(&self, ui: &imgui::Ui) {
+        // ui.text("Hello!");
     }
 
     pub fn name(&self) -> &String {
@@ -41,7 +49,10 @@ impl Layer {
     }
 }
 
-use std::time::Instant;
+use std::{
+    ffi::{CStr, CString},
+    time::{Duration, Instant},
+};
 
 use glutin::event::Event;
 use glutin::event_loop::{ControlFlow, EventLoop, EventLoopWindowTarget};
@@ -54,9 +65,8 @@ pub struct Application {
     event_loop: EventLoop<()>,
     windowed_context: ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window>,
     imgui: imgui::Context,
-    platform: imgui_winit_support::WinitPlatform,
+    imgui_platform: imgui_winit_support::WinitPlatform,
     imgui_renderer: imgui_opengl_renderer::Renderer,
-    last_frame: Instant,
     layers: Vec<Layer>,
 }
 
@@ -69,23 +79,24 @@ impl Application {
             .with_inner_size(logical_size);
 
         let windowed_context = ContextBuilder::new()
-            .with_vsync(true)
+            .with_vsync(false)
             .with_multisampling(0)
+            .with_double_buffer(Some(true))
             .build_windowed(wb, &event_loop)
             .unwrap();
         let windowed_context = unsafe { windowed_context.make_current().unwrap() };
 
         let mut imgui = imgui::Context::create();
 
-        let mut platform = imgui_winit_support::WinitPlatform::init(&mut imgui);
-        platform.attach_window(
+        let mut imgui_platform = imgui_winit_support::WinitPlatform::init(&mut imgui);
+        imgui_platform.attach_window(
             imgui.io_mut(),
             windowed_context.window(),
             imgui_winit_support::HiDpiMode::Default,
         );
 
         // fonts
-        let hidpi_factor = platform.hidpi_factor();
+        let hidpi_factor = imgui_platform.hidpi_factor();
         let font_size = (14.0 * hidpi_factor) as f32;
         imgui.fonts().add_font(&[imgui::FontSource::TtfData {
             data: include_bytes!("../resources/SourceCodePro-Regular.ttf"),
@@ -103,8 +114,6 @@ impl Application {
             windowed_context.context().get_proc_address(s) as _
         });
 
-        let last_frame = Instant::now();
-
         let physical_size = logical_size.to_physical::<u32>(hidpi_factor);
         unsafe {
             gl::Viewport(
@@ -119,21 +128,44 @@ impl Application {
             event_loop,
             windowed_context,
             imgui,
-            platform,
+            imgui_platform,
             imgui_renderer,
-            last_frame,
             layers: Vec::new(),
         }
     }
 
     pub fn run(self) {
-        let mut last_frame = self.last_frame;
-        let mut platform = self.platform;
-        let windowed_context = self.windowed_context;
-        let layers = self.layers;
-        let mut imgui = self.imgui;
-        let imgui_renderer = self.imgui_renderer;
-        let mut frame_time = std::time::Duration::new(0, 0);
+        let Application {
+            windowed_context,
+            mut imgui,
+            mut imgui_platform,
+            imgui_renderer,
+            layers,
+            ..
+        } = self;
+
+        let mut last_event_poll = Instant::now();
+        let mut event_poll_time = Duration::from_secs(0);
+
+        let fixed_update_rate = 120.0;
+        let fixed_timestep = Duration::from_secs_f64(1.0 / fixed_update_rate);
+        let mut next_fixed_update = Instant::now();
+        let mut last_fixed_update = Instant::now();
+        let mut fixed_delta_time = Duration::from_secs(0);
+
+        let mut max_frame_rate: f32 = 60.0;
+        let mut min_frame_timestep = Duration::from_secs_f32(1.0 / max_frame_rate);
+        let mut next_frame_update = Instant::now();
+        let mut last_frame_update = Instant::now();
+        let mut delta_time = Duration::from_secs(0);
+        let fps_timings_max_capacity = 300;
+        let mut fps_timings = Vec::<f32>::with_capacity(fps_timings_max_capacity);
+        // fps_timings.insert(0, element);
+        // fps_timings.truncate(fps_timings_max_capacity);
+
+        // let mut ahead_frame_skip_count: u64 = 0;
+        // let mut behind_frame_skip_count: u64 = 0;
+
         self.event_loop.run(
             move |event: Event<()>,
                   _: &EventLoopWindowTarget<()>,
@@ -143,17 +175,51 @@ impl Application {
                 match event {
                     Event::NewEvents(_) => {
                         // other application-specific logic
-
-                        let this_frame = imgui.io_mut().update_delta_time(last_frame);
-                        frame_time = this_frame.duration_since(last_frame);
-                        last_frame = this_frame;
+                        let now = Instant::now();
+                        event_poll_time = now - last_event_poll;
+                        imgui.io_mut().update_delta_time(last_event_poll);
+                        last_event_poll = now;
                     }
                     Event::MainEventsCleared => {
                         // other application-specific logic
-                        platform
-                            .prepare_frame(imgui.io_mut(), windowed_context.window()) // step 4
-                            .expect("Failed to prepare frame");
-                        windowed_context.window().request_redraw();
+
+                        // asap update
+
+                        let now = Instant::now();
+                        if now >= next_fixed_update {
+                            // fixed update
+                            next_fixed_update = next_fixed_update + fixed_timestep;
+                            fixed_delta_time = now - last_fixed_update;
+                            last_fixed_update = now;
+
+                            for layer in &layers {
+                                layer.on_fixed_update();
+                            }
+                        }
+
+                        let now = Instant::now();
+                        if now < next_fixed_update {
+                            if now >= next_frame_update {
+                                // frame update (with render)
+                                next_frame_update = now + min_frame_timestep;
+                                delta_time = now - last_frame_update;
+                                last_frame_update = now;
+
+                                fps_timings.insert(0, 1.0 / delta_time.as_secs_f32());
+                                fps_timings.truncate(fps_timings_max_capacity);
+
+                                imgui_platform
+                                    .prepare_frame(imgui.io_mut(), windowed_context.window())
+                                    .expect("Failed to prepare frame");
+                                windowed_context.window().request_redraw();
+                            } else {
+                                // ahead_frame_skip_count += 1;
+                                // println!("Ahead Frames Skipped: {}", ahead_frame_skip_count);
+                            }
+                        } else {
+                            // behind_frame_skip_count += 1;
+                            // println!("BEHIND FRAMES SKIPPED! {}", behind_frame_skip_count);
+                        }
                     }
                     Event::LoopDestroyed => (),
                     Event::RedrawRequested(_) => {
@@ -164,39 +230,122 @@ impl Application {
                         }
 
                         for layer in &layers {
-                            layer.on_update();
+                            layer.on_frame_update();
                         }
 
                         // construct the UI
                         let ui = imgui.frame();
-                        imgui::Window::new(imgui::im_str!("Hello world"))
-                            .size([300.0, 100.0], imgui::Condition::FirstUseEver)
+                        for layer in &layers {
+                            layer.on_imgui_update(&ui);
+                        }
+
+                        imgui::Window::new(imgui::im_str!("Performance Metrics"))
+                            .size([340.0, 250.0], imgui::Condition::FirstUseEver)
+                            .always_auto_resize(true)
+                            .position_pivot([1.0, 0.0])
+                            .position(
+                                [
+                                    windowed_context.window().inner_size().width as f32
+                                        / imgui_platform.hidpi_factor() as f32,
+                                    0.0,
+                                ],
+                                imgui::Condition::FirstUseEver,
+                            )
+                            .save_settings(false)
                             .build(&ui, || {
                                 ui.text(format!(
-                                    "Frame Time: {:.3} ms",
-                                    frame_time.as_secs_f64() * 1000.0
+                                    "Event Poll Time: {:06.3} ms",
+                                    event_poll_time.as_secs_f64() * 1_000.0
                                 ));
-                                ui.text(imgui::im_str!("Hello world!"));
-                                ui.text(imgui::im_str!("こんにちは世界！"));
-                                ui.text(imgui::im_str!("This...is...imgui-rs!"));
-                                ui.separator();
-                                let mouse_pos = ui.io().mouse_pos;
                                 ui.text(format!(
-                                    "Mouse Position: ({:.1},{:.1})",
-                                    mouse_pos[0], mouse_pos[1]
+                                    "Fixed Delta Time: {:06.3} ms (Timestep: {:06.3})",
+                                    fixed_delta_time.as_secs_f64() * 1_000.0,
+                                    fixed_timestep.as_secs_f64() * 1_000.0,
                                 ));
+                                ui.text(format!(
+                                    "Delta Time: {:06.3} ms (Max Frame Rate: {:03.0} FPS)",
+                                    delta_time.as_secs_f64() * 1_000.0,
+                                    max_frame_rate,
+                                ));
+                                if ui
+                                    .drag_float(
+                                        imgui::im_str!("Max Frame Rate"),
+                                        &mut max_frame_rate,
+                                    )
+                                    .min(30.0)
+                                    .max(300.0)
+                                    .display_format(imgui::im_str!("%g"))
+                                    .build()
+                                {
+                                    min_frame_timestep =
+                                        Duration::from_secs_f32(1.0 / max_frame_rate);
+                                };
+
+                                // calling before a ui frame is created causes UB
+                                // unsafe {
+                                //     if imgui::sys::igSliderFloat(
+                                //         CString::new("Test Slider").unwrap().as_ptr(),
+                                //         &mut max_frame_rate,
+                                //         30.0,
+                                //         300.0,
+                                //         CString::new("%g").unwrap().as_ptr(),
+                                //         1.0,
+                                //     ) {
+                                //         min_frame_timestep =
+                                //             Duration::from_secs_f32(1.0 / max_frame_rate);
+                                //     }
+                                // }
+
+                                let min_fps =
+                                    fps_timings.iter().fold(std::f32::MAX, |min, &val| {
+                                        if val < min {
+                                            val
+                                        } else {
+                                            min
+                                        }
+                                    });
+                                let max_fps = fps_timings.iter().fold(0.0f32, |max, &val| {
+                                    if val > max {
+                                        val
+                                    } else {
+                                        max
+                                    }
+                                });
+                                let ave_fps: f32 =
+                                    fps_timings.iter().sum::<f32>() / fps_timings.len() as f32;
+                                let overlay_text = imgui::im_str!(
+                                    "Min: {:06.3} | Max: {:06.3} | Ave: {:06.3}",
+                                    min_fps,
+                                    max_fps,
+                                    ave_fps,
+                                );
+                                ui.plot_lines(imgui::im_str!("FPS"), &fps_timings)
+                                    .graph_size([300.0, 100.0])
+                                    .overlay_text(overlay_text.as_ref())
+                                    .build();
                             });
-                        ui.show_demo_window(&mut true);
-                        platform.prepare_render(&ui, windowed_context.window());
-                        // render the UI with a renderer
+                        // ui.show_demo_window(&mut true);
+                        imgui_platform.prepare_render(&ui, windowed_context.window());
                         imgui_renderer.render(ui);
 
                         // application-specific rendering *over the UI*
 
+                        // let before_swap = Instant::now();
                         windowed_context.swap_buffers().unwrap();
+                        // let elapsed = before_swap.elapsed();
+                        // if elapsed > min_frame_timestep {
+                        //     println!(
+                        //         "Slow Swap Buffers Time: {:07.3}",
+                        //         elapsed.as_secs_f64() * 1_000.0
+                        //     );
+                        // }
                     }
                     event => {
-                        platform.handle_event(imgui.io_mut(), windowed_context.window(), &event);
+                        imgui_platform.handle_event(
+                            imgui.io_mut(),
+                            windowed_context.window(),
+                            &event,
+                        );
 
                         // other application-specific event handling
                         use glutin::event::{
@@ -209,6 +358,9 @@ impl Application {
                                     windowed_context.resize(physical_size)
                                 }
                                 WindowEvent::CloseRequested => *control_flow = ControlFlow::Exit,
+
+                                // FIXME: remove this as `modifiders` is deprecated.
+                                #[allow(deprecated)]
                                 WindowEvent::KeyboardInput {
                                     input:
                                         KeyboardInput {
@@ -222,8 +374,8 @@ impl Application {
                                     (VirtualKeyCode::Q, _, ModifiersState::LOGO) => {
                                         *control_flow = ControlFlow::Exit
                                     }
-                                    (VirtualKeyCode::W, ElementState::Pressed, _) => {
-                                        println!("W");
+                                    (VirtualKeyCode::V, ElementState::Pressed, _) => {
+                                        // TODO: figure out how to control vsync at runtime.
                                     }
                                     _ => (),
                                 },
