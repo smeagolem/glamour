@@ -88,7 +88,7 @@ jobs:
     - name: Upload docs
       uses: actions/upload-artifact@v1
       with:
-        name: docs
+        name: docs-dist
         path: docs/.vuepress/dist
 
   deploy:
@@ -100,11 +100,16 @@ jobs:
     - name: Download docs
       uses: actions/download-artifact@v1
       with:
-        name: docs
-    - name: Unzip docs
+        name: docs-dist
+    - name: find out where docs is???
       run: |
         ls
-        unzip docs.zip -d docs
+        cd ./docs
+        ls
+        cd ./.vuepress
+        ls
+        cd ../../docs-dist
+        ls
     - name: Deploy Docs
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
