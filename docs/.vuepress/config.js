@@ -1,4 +1,5 @@
 module.exports = {
+    base: '/ict40010/',
     themeConfig: {
         nav: [
             { text: 'Home', link: '/' },
