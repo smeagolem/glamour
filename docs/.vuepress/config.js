@@ -4,7 +4,8 @@ module.exports = {
         nav: [
             { text: 'Home', link: '/' },
             { text: 'Glamour Docs', link: '/glamour' },
-            { text: 'GitHub', link: 'https://github.com/smeagolem/ict40010' }
-        ]
-    }
+            { text: 'GitHub', link: 'https://github.com/smeagolem/ict40010' },
+        ],
+    },
+    evergreen: true,
 }
