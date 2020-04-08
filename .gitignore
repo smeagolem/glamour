@@ -1,4 +1,12 @@
 /target
 **/*.rs.bk
-.DS_Store
+
 imgui.ini
+
+.DS_Store
+.thumbs.db
+
+node_modules
+/.cache
+yarn-debug.log*
+yarn-error.log*
