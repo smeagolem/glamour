@@ -29,7 +29,7 @@ jobs:
     - name: Test
       run: cargo test
 
-  docs:
+  docs-vuepress:
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
@@ -51,6 +51,19 @@ jobs:
           ${{ runner.os }}-yarn-
     - name: Install dependencies
       run: yarn install --frozen-lockfile
+    - name: Build Vuepress docs
+      run: yarn build
+    - name: Upload docs
+      uses: actions/upload-artifact@v1
+      with:
+        name: docs-vuepress
+        path: docs/.vuepress/dist
+
+  docs-glamour:
+    runs-on: ubuntu-latest
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v2
     - name: Cache cargo registry
       uses: actions/cache@v1
       with:
@@ -65,33 +78,36 @@ jobs:
         key: ${{ runner.os }}-cargo-docs-target-${{ hashFiles('**/Cargo.lock') }}
         restore-keys: |
           ${{ runner.os }}-cargo-docs-target-
-    - name: Build Glamour Docs
+    - name: Build Glamour docs
       run: |
         cargo doc --lib --no-deps
-        mv target/doc docs/.vuepress/public/doc
-    - name: Build Vuepress Docs
-      run: yarn build
+        mv target/doc doc
     - name: Upload docs
       uses: actions/upload-artifact@v1
       with:
-        name: docs-dist
-        path: docs/.vuepress/dist
+        name: docs-glamour
+        path: doc
 
-  deploy:
-    needs: [build, docs]
+  docs-deploy:
+    needs: [build, docs-vuepress, docs-glamour]
     runs-on: ubuntu-latest
     steps:
     - name: Checkout
       uses: actions/checkout@v2
-    - name: Download docs
+    - name: Download Vuepress docs
       uses: actions/download-artifact@v1
       with:
-        name: docs-dist
-    - name: Deploy Docs
+        name: docs-vuepress
+    - name: Download Glamour docs
+      uses: actions/download-artifact@v1
+      with:
+        name: docs-glamour
+        path: docs-vuepress/doc
+    - name: Deploy docs
       uses: JamesIves/github-pages-deploy-action@releases/v3
       with:
         ACCESS_TOKEN: ${{ secrets.GLAMOUR_DOCS_DEPLOY }}
         BRANCH: gh-pages # The branch the action should deploy to.
-        FOLDER: docs-dist # The foldßer the action should deploy.
+        FOLDER: docs-vuepress # The foldßer the action should deploy.
         CLEAN: true
         SINGLE_COMMIT: true
