@@ -101,18 +101,9 @@ jobs:
       uses: actions/download-artifact@v1
       with:
         name: docs-dist
-    - name: find out where docs is???
-      run: |
-        ls
-        cd ./docs
-        ls
-        cd ./.vuepress
-        ls
-        cd ../../docs-dist
-        ls
     - name: Deploy Docs
-      uses: JamesIves/github-pages-deploy-action@releases/v3
+      uses: JamesIvßes/github-pages-deploy-action@releases/v3
       with:
         ACCESS_TOKEN: ${{ secrets.GLAMOUR_DOCS_DEPLOY }}
         BRANCH: gh-pages # The branch the action should deploy to.
-        FOLDER: docs # The folder the action should deploy.
+        FOLDER: docs-dist # The foldßer the action should deploy.
