@@ -106,4 +106,4 @@ jobs:
       with:
         ACCESS_TOKEN: ${{ secrets.GLAMOUR_DOCS_DEPLOY }}
         BRANCH: gh-pages # The branch the action should deploy to.
-        FOLDER: docs/.vuepress/dist # The folder the action should deploy.
+        FOLDER: dist # The folder the action should deploy.
