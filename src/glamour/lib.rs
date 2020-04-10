@@ -376,6 +376,16 @@ impl Application {
                                     }
                                     (VirtualKeyCode::V, ElementState::Pressed, _) => {
                                         // TODO: figure out how to control vsync at runtime.
+
+                                        use std::io::prelude::*;
+                                        let serialized =
+                                            serde_json::to_string(&fps_timings).unwrap();
+                                        // println!("serialized = {}", serialized);
+                                        let my_json = format!(r#"{{"fps": {}}}"#, serialized);
+                                        let mut file = std::fs::File::create("data.json")
+                                            .expect("create failed");
+                                        file.write_all(my_json.as_bytes()).expect("write failed");
+                                        println!("data written to file");
                                     }
                                     _ => (),
                                 },
