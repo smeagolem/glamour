@@ -1,3 +1,5 @@
-# Hello VuePress
+# Data Viz
 
-This is some test words and stuff. You know!?
+Some FPS data from a Glamour performance benchmark.
+
+<fps-graph />
