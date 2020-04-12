@@ -1,8 +1,10 @@
-use glamour::{Application, Layer};
+use glamour::Application;
+
+mod square_layer;
 
 fn main() {
     let mut app = Application::new("It's a square!", 1024, 1024);
-    let my_layer = Layer::new("Square Layer");
-    app.push_layer(my_layer);
+    let square_layer = square_layer::SquareLayer::new("SquareLayer");
+    app.push_layer(Box::new(square_layer));
     app.run();
 }
