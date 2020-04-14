@@ -1,11 +1,75 @@
 use gl;
+use nalgebra_glm as glm;
 use std::ffi::CString;
 
-pub struct Program {
+pub struct ShaderBuilder {
+    vert_src: String,
+    frag_src: String,
+    uniforms: Vec<Uniform>,
+}
+
+impl ShaderBuilder {
+    pub fn new(vert_src: &str, frag_src: &str) -> ShaderBuilder {
+        ShaderBuilder {
+            vert_src: vert_src.to_string(),
+            frag_src: frag_src.to_string(),
+            uniforms: Vec::new(),
+        }
+    }
+    pub fn with_float4(mut self, name: &str, value: glm::Vec4) -> Self {
+        let uniform = Uniform {
+            name: name.to_string(),
+            value: UniformValue::Float4(value),
+        };
+        self.uniforms.push(uniform);
+        self
+    }
+    // TODO: implement other builder methods as needed.
+    pub fn build(&self) -> ShaderProgram {
+        let vert = Shader::new(ShaderType::Vertex, &self.vert_src);
+        let frag = Shader::new(ShaderType::Fragment, &self.frag_src);
+        let prog = ShaderProgram::new(&[vert, frag]);
+        prog.set_use();
+        for uniform in &self.uniforms {
+            let name = CString::new(uniform.name.as_str()).unwrap();
+            let location = gl_call!(gl::GetUniformLocation(prog.id(), name.as_ptr()));
+            // if -1, could not find uniform, might be fine if unused and stripped by shader compilation.
+            if location == -1 {
+                continue;
+            }
+            match &uniform.value {
+                UniformValue::Int(_) => unimplemented!("only float4 is currently support."),
+                UniformValue::IntArray(_) => unimplemented!("only float4 is currently support."),
+                UniformValue::Float4(v) => gl_call!(gl::Uniform4f(location, v.x, v.y, v.z, v.w)),
+                _ => unimplemented!("only float4 is currently support."),
+            }
+        }
+        prog
+    }
+}
+
+#[derive(Debug)]
+struct Uniform {
+    name: String,
+    value: UniformValue,
+}
+
+#[allow(dead_code)]
+#[derive(Debug)]
+enum UniformValue {
+    Int(u32),
+    IntArray(Vec<u32>),
+    Float(f32),
+    Float3(glm::Vec3),
+    Float4(glm::Vec4),
+    Mat4(glm::Mat4),
+}
+
+pub struct ShaderProgram {
     id: u32,
 }
 
-impl Program {
+impl ShaderProgram {
     /// Creates a program and links shaders to it.
     ///
     /// # Panics
@@ -22,7 +86,7 @@ impl Program {
     /// let frag_shader = Shader::new(ShaderType::Fragment, frag_shader_source);
     /// let shader_program = Program::new(&[vert_shader, frag_shader]);
     /// ```
-    pub fn new(shaders: &[Shader]) -> Program {
+    fn new(shaders: &[Shader]) -> ShaderProgram {
         let id = gl_call!(gl::CreateProgram());
         for shader in shaders {
             gl_call!(gl::AttachShader(id, shader.id()));
@@ -45,19 +109,26 @@ impl Program {
                 error.to_string_lossy().into_owned()
             );
         }
-        Program { id }
+        ShaderProgram { id }
     }
 
-    pub fn id(&self) -> u32 {
+    fn id(&self) -> u32 {
         self.id
     }
 
     pub fn set_use(&self) {
         gl_call!(gl::UseProgram(self.id));
     }
+
+    pub fn set_float4(&self, name: &str, value: glm::Vec4) {
+        self.set_use();
+        let name = CString::new(name).unwrap();
+        let location = gl_call!(gl::GetUniformLocation(self.id(), name.as_ptr()));
+        gl_call!(gl::Uniform4f(location, value.x, value.y, value.z, value.w));
+    }
 }
 
-impl Drop for Program {
+impl Drop for ShaderProgram {
     fn drop(&mut self) {
         gl_call!(gl::DeleteProgram(self.id));
     }
@@ -65,12 +136,12 @@ impl Drop for Program {
 
 #[derive(Debug, Clone, Copy)]
 #[repr(u32)]
-pub enum ShaderType {
+enum ShaderType {
     Vertex = gl::VERTEX_SHADER,
     Fragment = gl::FRAGMENT_SHADER,
 }
 
-pub struct Shader {
+struct Shader {
     id: u32,
 }
 

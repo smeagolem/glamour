@@ -1,10 +1,10 @@
 use crate::IndexBuffer;
 use crate::Vertex;
 use crate::VertexBuffer;
-use crate::{Program, Shader, ShaderType};
+use crate::{ShaderBuilder, ShaderProgram};
 use anyhow::Result;
 use gl;
-use std::ffi::CString;
+use nalgebra_glm as glm;
 
 const VERTEX_SHADER_SOURCE: &str = include_str!("renderer/triangle.vert");
 const FRAGMENT_SHADER_SOURCE: &str = include_str!("renderer/triangle.frag");
@@ -13,7 +13,7 @@ const FRAGMENT_SHADER_SOURCE: &str = include_str!("renderer/triangle.frag");
 
 #[allow(dead_code)]
 pub struct ForwardRenderer {
-    shader_program: Program,
+    shader_program: ShaderProgram,
     vao: gl::types::GLuint,
     ibo: gl::types::GLuint,
     indices_len: gl::types::GLsizei,
@@ -24,20 +24,11 @@ impl ForwardRenderer {
         // set up shader program
         // vertex shader gets called for each vertex in our buffer, it tells opengl where the vertex will be in screen space. Takes in all vertex attributes, like position, and can output data to consecutive shaders (fragment shader).
         // fragment shader gets called for each (potential) pixel that needs to be filled in. Determines the color of the pixel.
-        let vert_shader = Shader::new(ShaderType::Vertex, VERTEX_SHADER_SOURCE);
-        let frag_shader = Shader::new(ShaderType::Fragment, FRAGMENT_SHADER_SOURCE);
-        let shader_program = Program::new(&[vert_shader, frag_shader]);
+        let shader_program = ShaderBuilder::new(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE)
+            .with_float4("u_Color", glm::vec4(1.0, 1.0, 1.0, 1.0))
+            .build();
 
-        shader_program.set_use();
-
-        // if -1, could not find uniform, might be fine if unused and stripped by shader compilation.
-        let u_color = unsafe {
-            gl::GetUniformLocation(shader_program.id(), CString::new("u_Color")?.as_ptr())
-        };
-
-        unsafe {
-            gl::Uniform4f(u_color, 1.0, 0.0, 0.2, 1.0);
-        }
+        shader_program.set_float4("u_Color", glm::vec4(1.0, 0.0, 0.2, 1.0));
 
         // set up vertex buffer object
         let vertices: Vec<Vertex> = vec![
