@@ -13,7 +13,7 @@ const FRAGMENT_SHADER_SOURCE: &str = include_str!("renderer/triangle.frag");
 
 #[allow(dead_code)]
 pub struct ForwardRenderer {
-    shader_program: ShaderProgram,
+    pub shader_program: ShaderProgram,
     vao: gl::types::GLuint,
     ibo: gl::types::GLuint,
     indices_len: gl::types::GLsizei,
