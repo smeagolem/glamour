@@ -74,18 +74,6 @@ impl ShaderProgram {
     ///
     /// # Panics
     /// If program linking fails, this function will `panic!`.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use glamour::{Shader, ShaderType, Program};
-    /// # let vert_shader_source = "";
-    /// # let frag_shader_source = "";
-    ///
-    /// let vert_shader = Shader::new(ShaderType::Vertex, vert_shader_source);
-    /// let frag_shader = Shader::new(ShaderType::Fragment, frag_shader_source);
-    /// let shader_program = Program::new(&[vert_shader, frag_shader]);
-    /// ```
     fn new(shaders: &[Shader]) -> ShaderProgram {
         let id = gl_call!(gl::CreateProgram());
         for shader in shaders {
@@ -150,22 +138,6 @@ impl Shader {
     ///
     /// # Panics
     /// If shader compilation fails, this function will `panic!`.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// use glamour::{Shader, ShaderType};
-    ///
-    /// let vert_shader_source = r#"
-    /// #version 410 core
-    /// layout (location = 0) in vec3 Position;
-    /// void main()
-    /// {
-    ///     gl_Position = vec4(Position, 1.0);
-    /// }
-    /// "#;
-    /// let vert_shader = Shader::new(ShaderType::Vertex, vert_shader_source);
-    /// ```
     pub fn new(shader_type: ShaderType, source: &str) -> Shader {
         let id = gl_call!(gl::CreateShader(shader_type as gl::types::GLenum));
         let source = CString::new(source).unwrap();
