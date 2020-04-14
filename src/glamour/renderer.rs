@@ -1,10 +1,10 @@
+use crate::glm;
 use crate::IndexBuffer;
 use crate::Vertex;
 use crate::VertexBuffer;
 use crate::{ShaderBuilder, ShaderProgram};
 use anyhow::Result;
 use gl;
-use nalgebra_glm as glm;
 
 const VERTEX_SHADER_SOURCE: &str = include_str!("renderer/triangle.vert");
 const FRAGMENT_SHADER_SOURCE: &str = include_str!("renderer/triangle.frag");

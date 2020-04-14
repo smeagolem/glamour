@@ -1,5 +1,5 @@
+use crate::glm;
 use gl;
-use nalgebra_glm as glm;
 use std::ffi::CString;
 
 pub struct ShaderBuilder {

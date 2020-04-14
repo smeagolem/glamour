@@ -19,6 +19,8 @@ pub use index_buffer::*;
 mod layer;
 pub use layer::*;
 
+pub use nalgebra_glm as glm;
+
 mod perf_metrics_layer;
 
 use std::time::{Duration, Instant};

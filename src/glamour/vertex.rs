@@ -1,5 +1,5 @@
+use crate::glm;
 use memoffset::offset_of;
-use nalgebra_glm as glm;
 
 #[allow(dead_code)]
 pub struct Vertex {
