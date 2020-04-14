@@ -1,7 +1,7 @@
 use crate::IndexBuffer;
 use crate::Vertex;
 use crate::VertexBuffer;
-use crate::{Program, Shader};
+use crate::{Program, Shader, ShaderType};
 use anyhow::Result;
 use gl;
 use std::ffi::CString;
@@ -24,9 +24,9 @@ impl ForwardRenderer {
         // set up shader program
         // vertex shader gets called for each vertex in our buffer, it tells opengl where the vertex will be in screen space. Takes in all vertex attributes, like position, and can output data to consecutive shaders (fragment shader).
         // fragment shader gets called for each (potential) pixel that needs to be filled in. Determines the color of the pixel.
-        let vert_shader = Shader::new(&CString::new(VERTEX_SHADER_SOURCE)?, gl::VERTEX_SHADER);
-        let frag_shader = Shader::new(&CString::new(FRAGMENT_SHADER_SOURCE)?, gl::FRAGMENT_SHADER);
-        let shader_program = Program::new(&[vert_shader, frag_shader])?;
+        let vert_shader = Shader::new(ShaderType::Vertex, VERTEX_SHADER_SOURCE);
+        let frag_shader = Shader::new(ShaderType::Fragment, FRAGMENT_SHADER_SOURCE);
+        let shader_program = Program::new(&[vert_shader, frag_shader]);
 
         shader_program.set_use();
 
