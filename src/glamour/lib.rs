@@ -10,11 +10,8 @@ pub use shader::*;
 mod vertex;
 pub use vertex::*;
 
-mod vertex_buffer;
-pub use vertex_buffer::*;
-
-mod index_buffer;
-pub use index_buffer::*;
+mod vertex_array;
+pub use vertex_array::*;
 
 mod layer;
 pub use layer::*;

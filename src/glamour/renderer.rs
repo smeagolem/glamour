@@ -1,8 +1,7 @@
-use crate::glm;
-use crate::IndexBuffer;
-use crate::Vertex;
-use crate::VertexBuffer;
-use crate::{ShaderBuilder, ShaderProgram};
+use crate::{
+    glm, IndexBuf, ShaderBuilder, ShaderProgram, Vert, VertArray, VertAttr, VertAttrType, VertBuf,
+    VertLayout,
+};
 use anyhow::Result;
 use gl;
 
@@ -14,9 +13,7 @@ const FRAGMENT_SHADER_SOURCE: &str = include_str!("renderer/triangle.frag");
 #[allow(dead_code)]
 pub struct ForwardRenderer {
     pub shader_program: ShaderProgram,
-    vao: gl::types::GLuint,
-    ibo: gl::types::GLuint,
-    indices_len: gl::types::GLsizei,
+    vao: VertArray,
 }
 
 impl ForwardRenderer {
@@ -27,56 +24,43 @@ impl ForwardRenderer {
         let shader_program = ShaderBuilder::new(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE)
             .with_float4("u_Color", glm::vec4(1.0, 1.0, 1.0, 1.0))
             .build();
-
         shader_program.set_float4("u_Color", glm::vec4(1.0, 0.0, 0.2, 1.0));
 
-        // set up vertex buffer object
-        let vertices: Vec<Vertex> = vec![
-            Vertex::from_pos(-0.5, -0.5, 0.0),
-            Vertex::from_pos(0.5, -0.5, 0.0),
-            Vertex::from_pos(0.5, 0.5, 0.0),
-            Vertex::from_pos(-0.5, 0.5, 0.0),
+        let vertices: Vec<Vert> = vec![
+            Vert {
+                position: glm::vec3(-0.5, -0.5, 0.0),
+                tex_coords: glm::vec2(0.0, 0.0),
+            },
+            Vert {
+                position: glm::vec3(0.5, -0.5, 0.0),
+                tex_coords: glm::vec2(1.0, 0.0),
+            },
+            Vert {
+                position: glm::vec3(0.5, 0.5, 0.0),
+                tex_coords: glm::vec2(1.0, 1.0),
+            },
+            Vert {
+                position: glm::vec3(-0.5, 0.5, 0.0),
+                tex_coords: glm::vec2(0.0, 1.0),
+            },
         ];
-        // generating 1 array buffer to be our vertex buffer object
-        let vbo = VertexBuffer::new::<Vertex>(&vertices);
+        let vert_layout = VertLayout::new(vec![
+            VertAttr::new(VertAttrType::Float3, false),
+            VertAttr::new(VertAttrType::Float2, false),
+        ]);
+        let vbo = VertBuf::new::<Vert>(&vertices, vert_layout);
 
-        // set up index buffer object
         // triangle
-        // let indices: Vec<u32> = vec![0, 1, 2];
+        let indices: Vec<u32> = vec![0, 1, 2];
         // square
-        let indices: Vec<u32> = vec![0, 1, 2, 2, 3, 0];
-        let ibo = IndexBuffer::new(&indices);
+        // let indices: Vec<u32> = vec![0, 1, 2, 2, 3, 0];
+        let ibo = IndexBuf::new(&indices);
 
-        // set up vertex array object
-        let mut vao: gl::types::GLuint = 0;
-        unsafe {
-            gl::GenVertexArrays(1, &mut vao);
-        }
-
-        // vertex array object binds the vertex buffer and layout config (VertexAttribPointer)
-        unsafe {
-            gl::BindVertexArray(vao);
-            gl::BindBuffer(gl::ARRAY_BUFFER, vbo.renderer_id());
-            gl::EnableVertexAttribArray(0); // this is "layout (location = 0)" in vertex shader
-
-            // tell opengl how to interpret the vertex data
-            gl::VertexAttribPointer(
-                0,         // index of the generic vertex attribute ("layout (location = 0)")
-                3, // the number of components per generic vertex attribute, 3 floats representing vertex positions
-                gl::FLOAT, // data type
-                gl::FALSE, // normalized (int-to-float conversion)
-                std::mem::size_of::<Vertex>() as gl::types::GLint, // stride (byte offset between consecutive attributes)
-                Vertex::offset_of_position() as *const gl::types::GLvoid, // offset of the position member of Vertex struct, which is currently 0
-            );
-            gl::BindBuffer(gl::ARRAY_BUFFER, 0);
-            gl::BindVertexArray(0);
-        }
+        let vao = VertArray::new(&[vbo], ibo);
 
         Ok(ForwardRenderer {
             shader_program,
             vao,
-            ibo: ibo.renderer_id(),
-            indices_len: indices.len() as gl::types::GLsizei,
         })
     }
 
@@ -88,14 +72,13 @@ impl ForwardRenderer {
         }
 
         // draw triangle
+        self.vao.set_bind();
         unsafe {
-            gl::BindVertexArray(self.vao);
-            gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.ibo);
             gl::DrawElements(
-                gl::TRIANGLES,    // mode
-                self.indices_len, // number of indices
-                gl::UNSIGNED_INT, // type of an index
-                std::ptr::null(), // pointer to indices, nullptr if already bound.
+                gl::TRIANGLES,                   // mode
+                self.vao.idx_buf().len() as i32, // number of indices
+                gl::UNSIGNED_INT,                // type of an index
+                std::ptr::null(),                // pointer to indices, nullptr if already bound.
             );
         }
 
