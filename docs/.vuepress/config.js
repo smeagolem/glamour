@@ -1,11 +1,12 @@
 module.exports = {
-  base: '/ict40010/',
+  base: '/',
   title: 'Glamour',
   themeConfig: {
     nav: [
       { text: 'Home', link: '/' },
-      { text: 'Glamour Docs', link: '/glamour' },
-      { text: 'GitHub', link: 'https://github.com/smeagolem/ict40010' },
+      { text: 'Dev Log', link: '/devlog/' },
+      { text: 'Glamour Docs', link: '/glamour-docs/' },
+      { text: 'GitHub', link: 'https://github.com/smeagolem/glamour' },
     ],
   },
   evergreen: true,

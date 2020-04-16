@@ -1,3 +1,3 @@
-# ICT40010 - Research Report A
+# Glamour
 
 TODO

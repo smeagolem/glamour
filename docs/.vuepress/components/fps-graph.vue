@@ -41,7 +41,7 @@ export default {
 
   methods: {
     async fetchFiles() {
-      const res = await fetch("/ict40010/perf_index.json");
+      const res = await fetch("/perf_index.json");
       const data = await res.json();
       this.files = data.files;
     },
@@ -49,7 +49,7 @@ export default {
       await this.fetchFiles();
       await Promise.all(
         this.files.map(async file => {
-          const res = await fetch(`/ict40010/perfs/${file}`);
+          const res = await fetch(`/perfs/${file}`);
           const data = await res.json();
           this.chartdata.datasets.push({
             label: file,
