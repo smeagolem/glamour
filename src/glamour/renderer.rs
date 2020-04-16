@@ -1,6 +1,6 @@
 use crate::{
-    glm, IndexBuf, ShaderBuilder, ShaderProgram, Vert, VertArray, VertAttr, VertAttrType, VertBuf,
-    VertLayout,
+    glm, IndexBuf, ShaderBuilder, ShaderProgram, Texture, Vert, VertArray, VertAttr, VertAttrType,
+    VertBuf, VertLayout,
 };
 use anyhow::Result;
 use gl;
@@ -14,6 +14,7 @@ const FRAGMENT_SHADER_SOURCE: &str = include_str!("renderer/triangle.frag");
 pub struct ForwardRenderer {
     pub shader_program: ShaderProgram,
     vao: VertArray,
+    tex: Texture,
 }
 
 impl ForwardRenderer {
@@ -22,9 +23,9 @@ impl ForwardRenderer {
         // vertex shader gets called for each vertex in our buffer, it tells opengl where the vertex will be in screen space. Takes in all vertex attributes, like position, and can output data to consecutive shaders (fragment shader).
         // fragment shader gets called for each (potential) pixel that needs to be filled in. Determines the color of the pixel.
         let shader_program = ShaderBuilder::new(VERTEX_SHADER_SOURCE, FRAGMENT_SHADER_SOURCE)
-            .with_float4("u_Color", glm::vec4(1.0, 1.0, 1.0, 1.0))
+            .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
             .build();
-        shader_program.set_float4("u_Color", glm::vec4(1.0, 0.0, 0.2, 1.0));
+        shader_program.set_float4("u_color", glm::vec4(1.0, 0.0, 0.2, 1.0));
 
         let vertices: Vec<Vert> = vec![
             Vert {
@@ -58,9 +59,13 @@ impl ForwardRenderer {
 
         let vao = VertArray::new(&[vbo], ibo);
 
+        let img_path = crate::assets_path().join("container.jpg");
+        let tex = Texture::new(&img_path);
+
         Ok(ForwardRenderer {
             shader_program,
             vao,
+            tex,
         })
     }
 
@@ -73,6 +78,7 @@ impl ForwardRenderer {
 
         // draw triangle
         self.vao.set_bind();
+        self.tex.set_bind();
         unsafe {
             gl::DrawElements(
                 gl::TRIANGLES,                   // mode

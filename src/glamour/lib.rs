@@ -16,6 +16,12 @@ pub use vertex_array::*;
 mod layer;
 pub use layer::*;
 
+mod asset;
+pub use asset::*;
+
+mod texture;
+pub use texture::*;
+
 pub use nalgebra_glm as glm;
 
 mod perf_metrics_layer;

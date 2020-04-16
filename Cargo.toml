@@ -1,6 +1,6 @@
 [package]
 name = "glamour"
-version = "0.3.0"
+version = "0.4.0"
 authors = ["David J Holland <stooge213@hotmail.com>"]
 edition = "2018"
 default-run = "sandbox"
@@ -17,6 +17,7 @@ memoffset = "0.5.4"
 nalgebra-glm = "0.7.0"
 serde = "1.0.106"
 serde_json = "1.0.51"
+image = "0.23.3"
 
 [build-dependencies]
 copy_dir = "0.1.2"

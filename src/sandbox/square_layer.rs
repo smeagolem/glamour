@@ -20,7 +20,7 @@ impl SquareLayer {
 impl Layer for SquareLayer {
     fn on_frame_update(&mut self, _: &mut glamour::AppContext) {
         self.fr.shader_program.set_float4(
-            "u_Color",
+            "u_color",
             glm::vec4(
                 1.0,
                 (self.time.elapsed().as_secs_f32() * 10.0).sin() / 2.0 + 0.5,
