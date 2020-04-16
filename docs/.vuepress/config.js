@@ -3,11 +3,12 @@ module.exports = {
   title: 'Glamour',
   themeConfig: {
     nav: [
-      { text: 'Home', link: '/' },
-      { text: 'Dev Log', link: '/devlog/' },
-      { text: 'Glamour Docs', link: '/glamour-docs/' },
-      { text: 'GitHub', link: 'https://github.com/smeagolem/glamour' },
+      { text: 'Technical Report', link: '/tech/' },
+      { text: 'Development Log', link: '/devlog/' },
+      { text: 'API', link: '/api/' },
     ],
+    repo: 'smeagolem/glamour',
+    lastUpdated: true,
   },
   evergreen: true,
 }
