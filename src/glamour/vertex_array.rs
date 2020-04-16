@@ -82,6 +82,7 @@ impl VertBuf {
         gl_call!(gl::GenBuffers(1, &mut id));
         // select the buffer as an simple array
         gl_call!(gl::BindBuffer(gl::ARRAY_BUFFER, id));
+        // TODO: maybe use the layout sizes for this...
         let size =
             gl::types::GLsizeiptr::try_from(vertices.len() * std::mem::size_of::<T>()).unwrap();
         let ptr = vertices.as_ptr() as *const gl::types::GLvoid;

@@ -49,7 +49,7 @@ impl ForwardRenderer {
             VertAttr::new(VertAttrType::Float3, false),
             VertAttr::new(VertAttrType::Float2, false),
         ]);
-        let vbo = VertBuf::new::<Vert>(&vertices, vert_layout);
+        let vbo = VertBuf::new(&vertices, vert_layout);
 
         // triangle
         let indices: Vec<u32> = vec![0, 1, 2];
