@@ -1,5 +1,6 @@
 ---
 home: true
+heroImage: /crystal-big.svg
 heroText: Glamour
 tagline: 🦀 Rust & OpenGL 🦀
 actionText: Technical Report →
@@ -29,3 +30,7 @@ cargo run
 ::: tip
 Use [rustup](https://www.rust-lang.org/tools/install) to install the latest **Rust** toolchain.
 :::
+
+<div class="footer">
+Icons made by <a href="https://www.flaticon.com/authors/eucalyp" title="Eucalyp">Eucalyp</a> from <a href="https://www.flaticon.com/" title="Flaticon"> www.flaticon.com</a>
+</div>

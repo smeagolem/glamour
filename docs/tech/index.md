@@ -2,7 +2,9 @@
 sidebar: auto
 ---
 
-# Technical Report
+# Technical Report <Badge text="WIP"/>
+
+[[toc]]
 
 TODO:
 - skim through all rendering notes

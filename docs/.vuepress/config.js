@@ -4,11 +4,18 @@ module.exports = {
   themeConfig: {
     nav: [
       { text: 'Technical Report', link: '/tech/' },
-      { text: 'Development Log', link: '/devlog/' },
+      { text: 'Development Notes', link: '/dev/' },
       { text: 'API', link: '/api/' },
     ],
     repo: 'smeagolem/glamour',
     lastUpdated: true,
   },
   evergreen: true,
+  plugins: {
+    '@vuepress/medium-zoom': {
+      options: {
+        margin: 16
+      }
+    }
+  }
 }

@@ -2,9 +2,11 @@
 sidebar: auto
 ---
 
-# Development Log
+# Development Notes
 
-## 2020/04/16 - Finding Problems
+<p style="font-size: 0.875rem; margin-bottom: -4.6rem;">16/04/2020</p>
+
+## Finding Problems  <Badge text="New!"/>
 In the past week, I was looking forward to getting really stuck into the rendering side of things, and finally get something more _interesting_ on the screen. I was following along with some [tutorials](https://learnopengl.com/), [documentation](http://docs.gl/gl4/glVertexAttribPointer), and [examples](https://github.com/TheCherno/Hazel) to further the progress. I started with the goal of loading and displaying a **texture** — _a simple task_, I thought, _couldn't take more than an hour_ — then to encounter a few roadblocks/sub-problems/side-missions which stood in my way, of which, I will explain now:
 
 ### Resource handling with Cargo
@@ -12,7 +14,7 @@ Since this is a [Rust](https://www.rust-lang.org/) project, the idiom is to use 
 
 I thought this would be a single config variable in `Cargo.toml`, i.e., `resource-dir = "src/assets"`. Woe is me, tis not. You see, **Cargo** only really deals with **`code`**, and after some [🦆quacking](https://duckduckgo.com/?q=rust+build+resource+folder) I found out that if you want to do anything else, well you'll need a [build script](https://doc.rust-lang.org/cargo/reference/build-scripts.html). And thus, `build.rs` was born.
 
-```rs
+```rust
 // build.rs
 
 use std::env;
@@ -63,7 +65,7 @@ So, now I had my texture asset loading from the correct directory and sent to Op
 As can be seen, that's a long string of dependent intrinsics to deal with. So, I had to refactor and encapsulate that code, otherwise I would lose my mind having to remember all of that when I add normals to the vertex data or try and load some arbitrary mesh. 
 
 My vertex data is now like this:
-```rs
+```rust
 struct Vert {
     position: glm::Vec3,
     tex_coords: glm::Vec2,
@@ -71,7 +73,7 @@ struct Vert {
 ```
 
 And, I can easily reflect that layout:
-```rs
+```rust
 let vert_layout = VertLayout::new(vec![
     VertAttr::new(VertAttrType::Float3, false),
     VertAttr::new(VertAttrType::Float2, false),
