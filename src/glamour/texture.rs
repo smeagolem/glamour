@@ -7,8 +7,8 @@ pub struct Texture {
 impl Texture {
     pub fn new(file_path: &std::path::Path) -> Self {
         let image = image::open(file_path).unwrap();
-        let image = image.as_rgb8().unwrap();
-        let (width, height) = image.dimensions();
+        let image_buf = image.flipv().into_rgb();
+        let (width, height) = image_buf.dimensions();
         let mut id = 0;
         gl_call!(gl::GenTextures(1, &mut id));
         gl_call!(gl::BindTexture(gl::TEXTURE_2D, id));
@@ -41,7 +41,7 @@ impl Texture {
             0,
             gl::RGB,
             gl::UNSIGNED_BYTE,
-            image.as_ptr() as *const gl::types::GLvoid
+            image_buf.as_ptr() as *const gl::types::GLvoid
         ));
         gl_call!(gl::GenerateMipmap(gl::TEXTURE_2D));
         gl_call!(gl::BindTexture(gl::TEXTURE_2D, 0));
