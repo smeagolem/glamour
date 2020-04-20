@@ -1,4 +1,5 @@
 use glamour::{glm, ForwardRenderer, Layer};
+use glutin::event::{Event, WindowEvent};
 
 pub struct SquareLayer {
     fr: ForwardRenderer,
@@ -8,7 +9,26 @@ pub struct SquareLayer {
 
 impl SquareLayer {
     pub fn new(name: &str) -> Self {
-        let fr = ForwardRenderer::new().expect("Failed to create forward renderer.");
+        let mut fr = ForwardRenderer::new().expect("Failed to create forward renderer.");
+        let cube_positions = vec![
+            glm::vec3(0.0, 0.0, 0.0),
+            glm::vec3(2.0, 5.0, -15.0),
+            glm::vec3(-1.5, -2.2, -2.5),
+            glm::vec3(-3.8, -2.0, -12.3),
+            glm::vec3(2.4, -0.4, -3.5),
+            glm::vec3(-1.7, 3.0, -7.5),
+            glm::vec3(1.3, -2.0, -2.5),
+            glm::vec3(1.5, 2.0, -2.5),
+            glm::vec3(1.5, 0.2, -1.5),
+            glm::vec3(-1.3, 1.0, -1.5),
+        ];
+        fr.cube_transforms = cube_positions
+            .iter()
+            .map(|p| {
+                let model: glm::Mat4 = glm::identity();
+                glm::translate(&model, p)
+            })
+            .collect();
         SquareLayer {
             fr,
             name: name.to_string(),
@@ -18,21 +38,56 @@ impl SquareLayer {
 }
 
 impl Layer for SquareLayer {
-    fn on_frame_update(&mut self, _: &mut glamour::AppContext) {
+    fn on_frame_update(&mut self, app_context: &mut glamour::AppContext) {
         self.fr.shader_program.set_float4(
             "u_color",
-            glm::vec4(
-                1.0,
-                (self.time.elapsed().as_secs_f32() * 10.0).sin() / 2.0 + 0.5,
-                0.2,
+            &glm::vec4(
+                (self.time.elapsed().as_secs_f32() * 1.0).sin() / 2.0 + 0.5,
+                (self.time.elapsed().as_secs_f32() * 2.0).sin() / 2.0 + 0.5,
+                (self.time.elapsed().as_secs_f32() * 5.0).sin() / 2.0 + 0.5,
                 1.0,
             ),
         );
+        for (index, transform) in self.fr.cube_transforms.iter_mut().enumerate() {
+            *transform = glm::rotate(
+                transform,
+                glm::radians(&glm::vec1(
+                    (index + 1) as f32 * app_context.delta_time().as_secs_f32() * 20.0,
+                ))
+                .x,
+                &glm::vec3(0.5, 1.0, 0.0),
+            );
+            *transform = glm::translate(
+                transform,
+                &glm::vec3(
+                    0.0,
+                    ((index + 1) as f32 * self.time.elapsed().as_secs_f32() * 1.0).sin() * 0.01,
+                    0.0,
+                ),
+            );
+        }
         self.fr
             .render()
             .expect(format!("Failed to render layer: {}", self.name).as_str());
     }
     fn name(&self) -> &String {
         &self.name
+    }
+    fn on_event(&mut self, event: &glutin::event::Event<()>, _: &mut glamour::AppContext) {
+        match event {
+            Event::WindowEvent {
+                event: WindowEvent::Resized(physical_size),
+                ..
+            } => {
+                let projection: glm::Mat4 = glm::perspective(
+                    physical_size.width as f32 / physical_size.height as f32,
+                    glm::radians(&glm::vec1(90.0)).x,
+                    0.1,
+                    100.0,
+                );
+                self.fr.shader_program.set_mat4("u_projection", &projection);
+            }
+            _ => (),
+        }
     }
 }

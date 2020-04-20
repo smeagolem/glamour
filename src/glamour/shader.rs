@@ -24,6 +24,14 @@ impl ShaderBuilder {
         self.uniforms.push(uniform);
         self
     }
+    pub fn with_mat4(mut self, name: &str, value: glm::Mat4) -> Self {
+        let uniform = Uniform {
+            name: name.to_string(),
+            value: UniformValue::Mat4(value),
+        };
+        self.uniforms.push(uniform);
+        self
+    }
     // TODO: implement other builder methods as needed.
     pub fn build(&self) -> ShaderProgram {
         let vert = Shader::new(ShaderType::Vertex, &self.vert_src);
@@ -38,10 +46,11 @@ impl ShaderBuilder {
                 continue;
             }
             match &uniform.value {
-                UniformValue::Int(_) => unimplemented!("only float4 is currently support."),
-                UniformValue::IntArray(_) => unimplemented!("only float4 is currently support."),
                 UniformValue::Float4(v) => gl_call!(gl::Uniform4f(location, v.x, v.y, v.z, v.w)),
-                _ => unimplemented!("only float4 is currently support."),
+                UniformValue::Mat4(v) => {
+                    gl_call!(gl::UniformMatrix4fv(location, 1, gl::FALSE, v.as_ptr()))
+                }
+                _ => unimplemented!("not currently supported."),
             }
         }
         prog
@@ -108,11 +117,18 @@ impl ShaderProgram {
         gl_call!(gl::UseProgram(self.id));
     }
 
-    pub fn set_float4(&self, name: &str, value: glm::Vec4) {
+    pub fn set_float4(&self, name: &str, value: &glm::Vec4) {
         self.set_use();
         let name = CString::new(name).unwrap();
         let location = gl_call!(gl::GetUniformLocation(self.id(), name.as_ptr()));
         gl_call!(gl::Uniform4f(location, value.x, value.y, value.z, value.w));
+    }
+
+    pub fn set_mat4(&self, name: &str, value: &glm::Mat4) {
+        self.set_use();
+        let name = CString::new(name).unwrap();
+        let location = gl_call!(gl::GetUniformLocation(self.id(), name.as_ptr()));
+        gl_call!(gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()))
     }
 }
 

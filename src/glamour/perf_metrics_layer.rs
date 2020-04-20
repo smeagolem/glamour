@@ -47,7 +47,7 @@ impl Layer for PerfMetricsLayer {
     }
 
     fn on_imgui_update(&mut self, ui: &imgui::Ui, app_context: &mut AppContext) {
-        imgui::Window::new(imgui::im_str!("Performance Metricsy"))
+        imgui::Window::new(imgui::im_str!("Performance Metrics"))
             .size([340.0, 250.0], imgui::Condition::FirstUseEver)
             .always_auto_resize(true)
             .position_pivot([1.0, 0.0])
@@ -60,6 +60,7 @@ impl Layer for PerfMetricsLayer {
                 imgui::Condition::FirstUseEver,
             )
             .save_settings(false)
+            .collapsed(true, imgui::Condition::FirstUseEver)
             .build(&ui, || {
                 ui.text(format!(
                     "Event Poll Time: {:06.3} ms",

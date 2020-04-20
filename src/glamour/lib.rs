@@ -22,6 +22,9 @@ pub use asset::*;
 mod texture;
 pub use texture::*;
 
+mod cube;
+pub use cube::*;
+
 pub use nalgebra_glm as glm;
 
 mod perf_metrics_layer;
@@ -43,6 +46,12 @@ pub struct AppContext {
     imgui_platform: imgui_winit_support::WinitPlatform,
     event_poll_time: std::time::Duration,
     delta_time: std::time::Duration,
+}
+
+impl AppContext {
+    pub fn delta_time(&self) -> Duration {
+        self.delta_time
+    }
 }
 
 pub struct Application {
