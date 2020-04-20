@@ -6,7 +6,44 @@ sidebar: auto
 
 <p style="font-size: 0.875rem; margin-bottom: -4.6rem;">16/04/2020</p>
 
-## Finding Problems  <Badge text="New!"/>
+## The Crit Path to Deferred Shading <Badge text="New!"/>
+I need to get this **deferred shading** thing under wraps, so I've constructed the **MVP Critical Pathway to Success**! _Ooh, fancy_ 😮
+
+According to [Learn OpenGL](https://learnopengl.com/Advanced-Lighting/Deferred-Shading), I only require the following data to light a fragment with forward rendering, verbatim:
+- A 3D world-space **position** vector to calculate the (interpolated) fragment position variable used for `lightDir` and `viewDir`.
+- An RGB diffuse **color** vector also known as _albedo_.
+- A 3D **normal** vector for determining a surface's slope.
+- A **specular intensity** float.
+- All light source position and color vectors.
+- The player or viewer's position vector.
+
+I can use that exact same data to create a few **goemetry buffers** containing the rasterised position, normal, albedo, and specular data for the whole scene. Using the same lighting calculation with the new **G-buffer** input data, I can shade the whole scene, render it to a texture, and display it on a quad. That's the goal. To get there from where I currently am, I'll need a **critical path**.
+
+### Critical Path
+1. **Coordinate System**
+    - **Entity** object to encapsulate a **Transform** component and **Renderer** data.
+    - **Camera** component to handle view projection transforms, and move around the scene.
+    - The [nalgebra-glm](https://crates.io/crates/nalgebra-glm) crate has all the required math funcionality.
+1. **Forward Lighting**
+    - **Light** component to with color, strength, and type (directional or spotlight).
+    - **Material** component to encapsulate ambient, diffues, specular, and shininess values.
+    - Create a **GLSL function** to calculate lighting from a **material's** values and all the **light** source values.
+1. **Geometry**
+    - I'm going to skip model loading for now, and just use some pre-defined cube vertex data.
+    - Maybe I'll render the light sources as little spheres.
+1. **Deferred Shading**
+    - I will need to learn how to use **framebuffers**.
+    - I might need to do something with the **Depth buffer**.
+    - I will need to learn about **Multiple Render Targets** (MRT).
+    - Update the lighting calculation to take input from the **G-buffer** framebuffer.
+1. **Profit?**
+    - Well, no, but, minimum viable product? Yes.
+
+<br><br><br>
+
+<p style="font-size: 0.875rem; margin-bottom: -4.6rem;">16/04/2020</p>
+
+## Finding Problems
 In the past week, I was looking forward to getting really stuck into the rendering side of things, and finally get something more _interesting_ on the screen. I was following along with some [tutorials](https://learnopengl.com/), [documentation](http://docs.gl/gl4/glVertexAttribPointer), and [examples](https://github.com/TheCherno/Hazel) to further the progress. I started with the goal of loading and displaying a **texture** — _a simple task_, I thought, _couldn't take more than an hour_ — then to encounter a few roadblocks/sub-problems/side-missions which stood in my way, of which, I will explain now:
 
 ### Resource handling with Cargo
@@ -89,3 +126,5 @@ Full code [here](https://github.com/smeagolem/glamour/commit/775b0cd3b3535cf7ab8
 ### Some other wins
 - Refactored layers and the main loop to cleft some responsibility in twain — [commit](https://github.com/smeagolem/glamour/commit/5d6db2cd2a3a09e2215937184da03a38f2dd9067).
 - Added a shader builder to simplify compiling shaders — [commit](https://github.com/smeagolem/glamour/commit/4d60d17651c46628802c6c1589d7e65ca8d6d030).
+
+<br><br><br>
