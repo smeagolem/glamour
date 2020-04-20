@@ -39,29 +39,28 @@ impl SquareLayer {
 
 impl Layer for SquareLayer {
     fn on_frame_update(&mut self, app_context: &mut glamour::AppContext) {
+        let delta_time = app_context.delta_time().as_secs_f32();
+        let time = self.time.elapsed().as_secs_f32();
         self.fr.shader_program.set_float4(
             "u_color",
             &glm::vec4(
-                (self.time.elapsed().as_secs_f32() * 1.0).sin() / 2.0 + 0.5,
-                (self.time.elapsed().as_secs_f32() * 2.0).sin() / 2.0 + 0.5,
-                (self.time.elapsed().as_secs_f32() * 5.0).sin() / 2.0 + 0.5,
+                (time * 1.0).sin() / 2.0 + 0.5,
+                (time * 2.0).sin() / 2.0 + 0.5,
+                (time * 5.0).sin() / 2.0 + 0.5,
                 1.0,
             ),
         );
         for (index, transform) in self.fr.cube_transforms.iter_mut().enumerate() {
             *transform = glm::rotate(
                 transform,
-                glm::radians(&glm::vec1(
-                    (index + 1) as f32 * app_context.delta_time().as_secs_f32() * 20.0,
-                ))
-                .x,
+                glm::radians(&glm::vec1((index + 1) as f32 * delta_time * 20.0)).x,
                 &glm::vec3(0.5, 1.0, 0.0),
             );
             *transform = glm::translate(
                 transform,
                 &glm::vec3(
                     0.0,
-                    ((index + 1) as f32 * self.time.elapsed().as_secs_f32() * 1.0).sin() * 0.01,
+                    ((index + 1) as f32 * time).sin() * delta_time * 0.5,
                     0.0,
                 ),
             );
