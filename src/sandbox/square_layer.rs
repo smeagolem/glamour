@@ -41,6 +41,16 @@ impl Layer for SquareLayer {
     fn on_frame_update(&mut self, app_context: &mut glamour::AppContext) {
         let delta_time = app_context.delta_time().as_secs_f32();
         let time = self.time.elapsed().as_secs_f32();
+        self.fr.shader_program.set_mat4("u_view", {
+            let radius = 5.0;
+            let cam_x = time.sin() * radius;
+            let cam_z = time.cos() * radius;
+            &glm::look_at(
+                &glm::vec3(cam_x, 0.0, cam_z),
+                &glm::vec3(0.0, 0.0, 0.0),
+                &glm::vec3(0.0, 1.0, 0.0),
+            )
+        });
         self.fr.shader_program.set_float4(
             "u_color",
             &glm::vec4(
