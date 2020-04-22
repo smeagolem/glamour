@@ -3,14 +3,9 @@ pub mod gl_call;
 
 mod renderer;
 pub use renderer::*;
-
-mod shader;
 pub use shader::*;
-
-mod vertex;
+pub use texture::*;
 pub use vertex::*;
-
-mod vertex_array;
 pub use vertex_array::*;
 
 mod layer;
@@ -18,9 +13,6 @@ pub use layer::*;
 
 mod asset;
 pub use asset::*;
-
-mod texture;
-pub use texture::*;
 
 pub use nalgebra_glm as glm;
 

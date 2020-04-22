@@ -1,3 +1,8 @@
+pub mod shader;
+pub mod texture;
+pub mod vertex;
+pub mod vertex_array;
+
 use crate::{glm, IndexBuf, ShaderBuilder, ShaderProgram, Texture, Vert, VertArray, VertBuf};
 use gl;
 
@@ -14,12 +19,10 @@ impl ForwardRenderer {
     pub fn new() -> ForwardRenderer {
         gl_call!(gl::Enable(gl::DEPTH_TEST));
 
-        let shader = ShaderBuilder::new(
-            include_str!("renderer/triangle.vert"),
-            include_str!("renderer/triangle.frag"),
-        )
-        .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
-        .build();
+        let shader =
+            ShaderBuilder::new(include_str!("triangle.vert"), include_str!("triangle.frag"))
+                .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
+                .build();
 
         let img_path = crate::assets_path().join("container.jpg");
         let tex = Texture::new(&img_path);
