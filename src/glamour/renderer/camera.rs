@@ -17,18 +17,20 @@ impl Camera {
             aspect: 1.0,
         }
     }
-    pub fn view_projection_matrix(&self) -> glm::Mat4 {
-        // let view = glm::translate(&glm::identity::<f32, glm::U4>(), &self.position);
-        let view = glm::look_at(&self.position, &self.target, &glm::vec3(0.0, 1.0, 0.0));
-        let projection: glm::Mat4 = glm::perspective(
+    pub fn view_matrix(&self) -> glm::Mat4 {
+        glm::look_at(&self.position, &self.target, &glm::vec3(0.0, 1.0, 0.0))
+    }
+    pub fn projection_matrix(&self) -> glm::Mat4 {
+        glm::perspective(
             self.aspect,
             glm::radians(&glm::vec1(self.fov)).x,
             0.1,
             100.0,
-        );
-        projection * view
+        )
     }
-
+    pub fn view_projection_matrix(&self) -> glm::Mat4 {
+        self.projection_matrix() * self.view_matrix()
+    }
     pub fn handle_event(&mut self, event: &Event<()>) {
         match event {
             Event::WindowEvent {

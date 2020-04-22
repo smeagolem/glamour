@@ -32,7 +32,6 @@ impl ShaderBuilder {
         self.uniforms.push(uniform);
         self
     }
-    // TODO: implement other builder methods as needed.
     pub fn build(&self) -> ShaderProgram {
         let vert = Shader::new(ShaderType::Vertex, &self.vert_src);
         let frag = Shader::new(ShaderType::Fragment, &self.frag_src);
@@ -113,7 +112,6 @@ impl ShaderProgram {
         self.id
     }
 
-    // TODO: rename all set_use()/set_bind() to just bind();
     pub fn bind(&self) {
         gl_call!(gl::UseProgram(self.id));
     }
@@ -122,18 +120,28 @@ impl ShaderProgram {
         gl_call!(gl::UseProgram(0));
     }
 
+    pub fn set_float3(&self, name: &str, value: &glm::Vec3) {
+        self.bind();
+        let name = CString::new(name).unwrap();
+        let location = gl_call!(gl::GetUniformLocation(self.id(), name.as_ptr()));
+        gl_call!(gl::Uniform3f(location, value.x, value.y, value.z));
+        self.unbind();
+    }
+
     pub fn set_float4(&self, name: &str, value: &glm::Vec4) {
         self.bind();
         let name = CString::new(name).unwrap();
         let location = gl_call!(gl::GetUniformLocation(self.id(), name.as_ptr()));
         gl_call!(gl::Uniform4f(location, value.x, value.y, value.z, value.w));
+        self.unbind();
     }
 
     pub fn set_mat4(&self, name: &str, value: &glm::Mat4) {
         self.bind();
         let name = CString::new(name).unwrap();
         let location = gl_call!(gl::GetUniformLocation(self.id(), name.as_ptr()));
-        gl_call!(gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()))
+        gl_call!(gl::UniformMatrix4fv(location, 1, gl::FALSE, value.as_ptr()));
+        self.unbind();
     }
 }
 

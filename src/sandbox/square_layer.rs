@@ -14,14 +14,14 @@ impl SquareLayer {
         let cube_positions = vec![
             glm::vec3(0.0, 0.0, 0.0),
             glm::vec3(2.0, 5.0, -15.0),
-            glm::vec3(-1.5, -2.2, -2.5),
-            glm::vec3(-3.8, -2.0, -12.3),
-            glm::vec3(2.4, -0.4, -3.5),
-            glm::vec3(-1.7, 3.0, -7.5),
-            glm::vec3(1.3, -2.0, -2.5),
-            glm::vec3(1.5, 2.0, -2.5),
-            glm::vec3(1.5, 0.2, -1.5),
-            glm::vec3(-1.3, 1.0, -1.5),
+            glm::vec3(-2.5, -2.2, -3.5),
+            glm::vec3(-4.8, -2.0, -12.3),
+            glm::vec3(3.4, -0.4, -8.5),
+            glm::vec3(-2.7, 3.0, -7.5),
+            glm::vec3(3.3, -2.0, -3.5),
+            glm::vec3(2.5, 4.0, -5.5),
+            glm::vec3(4.5, 0.2, -2.5),
+            glm::vec3(-2.3, 1.0, -1.5),
         ];
         let cube_transforms = cube_positions
             .iter()
@@ -57,17 +57,19 @@ impl Layer for SquareLayer {
             self.camera.fov = 90.0 + time.sin() * 30.0;
         }
 
+        // self.camera.position = glm::vec3(0.0, 0.0, 10.0);
+
         self.fr.clear();
 
-        self.fr.shader().set_float4(
-            "u_color",
-            &glm::vec4(
-                (time * 1.0).sin() / 2.0 + 0.5,
-                (time * 2.0).sin() / 2.0 + 0.5,
-                (time * 5.0).sin() / 2.0 + 0.5,
-                1.0,
-            ),
-        );
+        // self.fr.shader().set_float4(
+        //     "u_color",
+        //     &glm::vec4(
+        //         (time * 1.0).sin() / 2.0 + 0.5,
+        //         (time * 2.0).sin() / 2.0 + 0.5,
+        //         (time * 5.0).sin() / 2.0 + 0.5,
+        //         1.0,
+        //     ),
+        // );
 
         self.fr.begin_draw(&self.camera);
         self.fr.draw_cube(&Transform {
@@ -86,23 +88,25 @@ impl Layer for SquareLayer {
             scale: glm::vec3(4.0, 4.0, 1.0),
         });
         for (index, transform) in self.cube_transforms.iter_mut().enumerate() {
-            transform.position += glm::vec3(
-                0.0,
-                ((index + 1) as f32 * time).sin() * delta_time * 0.5,
-                0.0,
+            transform.position = glm::vec3(
+                transform.position.x,
+                (time + 2.0 * index as f32).sin(),
+                transform.position.z,
             );
-            transform.rotation = glm::quat_rotate_normalized_axis(
+            transform.rotation = glm::quat_rotate(
                 &transform.rotation,
                 glm::radians(&glm::vec1((index + 1) as f32 * delta_time * 20.0)).x,
                 &glm::vec3(0.5, 1.0, 0.0),
             );
-            transform.scale += glm::vec3(
-                0.0,
-                ((index + 1) as f32 * time).sin() * delta_time * 2.0,
-                0.0,
-            );
+            transform.scale = glm::vec3(1.0, (time + index as f32).sin() + 1.5, 1.0);
             self.fr.draw_cube(&transform);
         }
+        self.fr.draw_light(&Transform {
+            // position: glm::vec3(4.0, 4.0, 4.0),
+            position: glm::vec3(4.0, (time * 2.0).sin() * 4.0, 4.0),
+            rotation: glm::quat_identity(),
+            scale: glm::vec3(1.0, 1.0, 1.0),
+        });
         self.fr.end_draw();
     }
     fn name(&self) -> &String {
