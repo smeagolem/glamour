@@ -1,5 +1,6 @@
-use crate::glm;
+use crate::{glm, VertAttr, VertAttrType, VertLayout};
 
+#[derive(Debug, Copy, Clone)]
 #[repr(C)]
 pub struct Vert {
     pub position: glm::Vec3,
@@ -14,5 +15,11 @@ impl Vert {
             // normal: glm::vec3(0.0, 0.0, 0.0),
             tex_coords: glm::vec2(0.0, 0.0),
         }
+    }
+    pub fn layout() -> VertLayout {
+        VertLayout::new(vec![
+            VertAttr::new(VertAttrType::Float3, false),
+            VertAttr::new(VertAttrType::Float2, false),
+        ])
     }
 }

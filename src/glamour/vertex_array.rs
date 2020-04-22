@@ -1,53 +1,111 @@
+use crate::Vert;
 use std::convert::TryFrom;
 
 pub struct VertArray {
     id: u32,
+    vert_attr_index: u32,
     index_buf: IndexBuf,
+    vert_bufs: Vec<VertBuf>,
 }
 
+// https://stackoverflow.com/questions/26552642/when-is-what-bound-to-a-vao
 impl VertArray {
-    pub fn new(vert_bufs: &[VertBuf], index_buf: IndexBuf) -> Self {
-        assert!(vert_bufs.len() > 0, "no vertex buffers!");
+    pub fn new(vert_bufs: Vec<VertBuf>, index_buf: IndexBuf) -> Self {
+        // assert!(vert_bufs.len() > 0, "no vertex buffers!");
         let mut id: u32 = 0;
         gl_call!(gl::GenVertexArrays(1, &mut id));
         gl_call!(gl::BindVertexArray(id));
-        for vert_buf in vert_bufs {
-            vert_buf.set_bind();
-            for (index, attr) in vert_buf.layout.attrs.iter().enumerate() {
-                gl_call!(gl::EnableVertexAttribArray(index as u32));
+        index_buf.bind();
+        let mut vert_attr_index = 0u32;
+        for vert_buf in &vert_bufs {
+            vert_buf.bind();
+            for attr in vert_buf.layout.attrs.iter() {
+                gl_call!(gl::EnableVertexAttribArray(vert_attr_index));
                 gl_call!(gl::VertexAttribPointer(
-                    index as u32,
+                    vert_attr_index,
                     attr.count() as i32,
                     attr.gl_data_type(),
                     if attr.normalized { gl::TRUE } else { gl::FALSE },
                     vert_buf.layout.stride as i32,
                     attr.offset as *const gl::types::GLvoid,
                 ));
+                vert_attr_index += 1;
             }
+            vert_buf.unbind();
         }
-        VertArray { id, index_buf }
+        gl_call!(gl::BindVertexArray(0));
+        index_buf.unbind();
+        VertArray {
+            id,
+            vert_attr_index,
+            index_buf,
+            vert_bufs,
+        }
     }
-    pub fn set_bind(&self) {
+    pub fn bind(&self) {
         gl_call!(gl::BindVertexArray(self.id));
-        self.index_buf.set_bind();
     }
-    pub fn idx_buf(&self) -> &IndexBuf {
+    pub fn unbind(&self) {
+        gl_call!(gl::BindVertexArray(0));
+    }
+    pub fn index_buf(&self) -> &IndexBuf {
         &self.index_buf
+    }
+    pub fn index_buf_mut(&mut self) -> &mut IndexBuf {
+        &mut self.index_buf
+    }
+    pub fn set_index_buf(&mut self, index_buf: IndexBuf) {
+        self.bind();
+        index_buf.bind();
+        self.unbind();
+        index_buf.unbind();
+        self.index_buf = index_buf;
+    }
+    pub fn push_buf(&mut self, vert_buf: VertBuf) {
+        self.bind();
+        vert_buf.bind();
+        for attr in vert_buf.layout.attrs.iter() {
+            gl_call!(gl::EnableVertexAttribArray(self.vert_attr_index));
+            gl_call!(gl::VertexAttribPointer(
+                self.vert_attr_index,
+                attr.count() as i32,
+                attr.gl_data_type(),
+                if attr.normalized { gl::TRUE } else { gl::FALSE },
+                vert_buf.layout.stride as i32,
+                attr.offset as *const gl::types::GLvoid,
+            ));
+            self.vert_attr_index += 1;
+        }
+        self.unbind();
+        vert_buf.unbind();
+        self.vert_bufs.push(vert_buf);
+    }
+    pub fn vert_bufs(&self) -> &[VertBuf] {
+        &self.vert_bufs
+    }
+    pub fn vert_bufs_mut(&mut self) -> &mut [VertBuf] {
+        &mut self.vert_bufs
+    }
+}
+
+impl Drop for VertArray {
+    fn drop(&mut self) {
+        gl_call!(gl::DeleteVertexArrays(1, &self.id));
     }
 }
 
 pub struct IndexBuf {
     id: u32,
-    len: usize,
+    indices: Vec<u32>,
 }
 
 impl IndexBuf {
-    pub fn new(indices: &Vec<u32>) -> IndexBuf {
+    pub fn new(indices: Vec<u32>) -> IndexBuf {
         let mut id = 0;
         gl_call!(gl::GenBuffers(1, &mut id));
         gl_call!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, id));
-        let size =
-            gl::types::GLsizeiptr::try_from(indices.len() * std::mem::size_of::<u32>()).unwrap();
+        let size = gl::types::GLsizeiptr::try_from(indices.capacity() * std::mem::size_of::<u32>())
+            .unwrap();
         let ptr = indices.as_ptr() as *const gl::types::GLvoid;
         gl_call!(gl::BufferData(
             gl::ELEMENT_ARRAY_BUFFER, // target buffer type
@@ -55,36 +113,59 @@ impl IndexBuf {
             ptr,                      // pointer to data
             gl::STATIC_DRAW,          // usage hint
         ));
-        IndexBuf {
-            id: id,
-            len: indices.len(),
-        }
+        gl_call!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0));
+        IndexBuf { id: id, indices }
     }
     pub fn id(&self) -> u32 {
         self.id
     }
-    pub fn set_bind(&self) {
+    pub fn bind(&self) {
         gl_call!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, self.id));
     }
+    pub fn unbind(&self) {
+        gl_call!(gl::BindBuffer(gl::ELEMENT_ARRAY_BUFFER, 0));
+    }
     pub fn len(&self) -> usize {
-        self.len
+        self.indices.len()
+    }
+    pub fn indices(&self) -> &[u32] {
+        &self.indices
+    }
+    pub fn indices_mut(&mut self) -> &mut Vec<u32> {
+        &mut self.indices
+    }
+    pub fn set_data(&self) {
+        self.bind();
+        let size = gl::types::GLsizeiptr::try_from(self.indices.len() * std::mem::size_of::<u32>())
+            .unwrap();
+        let ptr = self.indices.as_ptr() as *const gl::types::GLvoid;
+        gl_call!(gl::BufferSubData(gl::ELEMENT_ARRAY_BUFFER, 0, size, ptr));
+        self.unbind();
+    }
+}
+
+impl Drop for IndexBuf {
+    fn drop(&mut self) {
+        gl_call!(gl::DeleteBuffers(1, &self.id));
     }
 }
 
 pub struct VertBuf {
     id: u32,
+    vertices: Vec<Vert>,
     layout: VertLayout,
 }
 
 impl VertBuf {
-    pub fn new<T>(vertices: &[T], layout: VertLayout) -> Self {
+    pub fn new(vertices: Vec<Vert>, layout: VertLayout) -> Self {
         let mut id = 0;
         gl_call!(gl::GenBuffers(1, &mut id));
         // select the buffer as an simple array
         gl_call!(gl::BindBuffer(gl::ARRAY_BUFFER, id));
         // TODO: maybe use the layout sizes for this...
         let size =
-            gl::types::GLsizeiptr::try_from(vertices.len() * std::mem::size_of::<T>()).unwrap();
+            gl::types::GLsizeiptr::try_from(vertices.capacity() * std::mem::size_of::<Vert>())
+                .unwrap();
         let ptr = vertices.as_ptr() as *const gl::types::GLvoid;
         // fill selected buffer with data
         gl_call!(gl::BufferData(
@@ -93,7 +174,12 @@ impl VertBuf {
             ptr,              // pointer to data
             gl::STATIC_DRAW,  // usage hint
         ));
-        VertBuf { id, layout }
+        gl_call!(gl::BindBuffer(gl::ARRAY_BUFFER, 0));
+        VertBuf {
+            id,
+            vertices,
+            layout,
+        }
     }
     pub fn id(&self) -> u32 {
         self.id
@@ -101,8 +187,34 @@ impl VertBuf {
     pub fn layout(&self) -> &VertLayout {
         &self.layout
     }
-    pub fn set_bind(&self) {
+    pub fn bind(&self) {
         gl_call!(gl::BindBuffer(gl::ARRAY_BUFFER, self.id))
+    }
+    pub fn unbind(&self) {
+        gl_call!(gl::BindBuffer(gl::ARRAY_BUFFER, 0));
+    }
+    pub fn vertices(&self) -> &[Vert] {
+        &self.vertices
+    }
+    pub fn vertices_mut(&mut self) -> &mut Vec<Vert> {
+        &mut self.vertices
+    }
+    pub fn set_data(&self) {
+        self.bind();
+        let size =
+            gl::types::GLsizeiptr::try_from(self.vertices.len() * std::mem::size_of::<Vert>())
+                .unwrap();
+        let ptr = self.vertices.as_ptr() as *const gl::types::GLvoid;
+        // fill selected buffer with data
+        gl_call!(gl::BufferSubData(gl::ARRAY_BUFFER, 0, size, ptr));
+        self.unbind();
+        // self.vertices = vertices;
+    }
+}
+
+impl Drop for VertBuf {
+    fn drop(&mut self) {
+        gl_call!(gl::DeleteBuffers(1, &self.id));
     }
 }
 

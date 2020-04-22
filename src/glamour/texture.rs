@@ -49,7 +49,16 @@ impl Texture {
         Texture { id }
     }
 
-    pub fn set_bind(&self) {
+    pub fn bind(&self) {
         gl_call!(gl::BindTexture(gl::TEXTURE_2D, self.id));
+    }
+    pub fn unbind(&self) {
+        gl_call!(gl::BindTexture(gl::TEXTURE_2D, 0));
+    }
+}
+
+impl Drop for Texture {
+    fn drop(&mut self) {
+        gl_call!(gl::DeleteTextures(1, &self.id));
     }
 }

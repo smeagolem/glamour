@@ -22,9 +22,6 @@ pub use asset::*;
 mod texture;
 pub use texture::*;
 
-mod cube;
-pub use cube::*;
-
 pub use nalgebra_glm as glm;
 
 mod perf_metrics_layer;
