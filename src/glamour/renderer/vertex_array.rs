@@ -11,7 +11,6 @@ pub struct VertArray {
 // https://stackoverflow.com/questions/26552642/when-is-what-bound-to-a-vao
 impl VertArray {
     pub fn new(vert_bufs: Vec<VertBuf>, index_buf: IndexBuf) -> Self {
-        // assert!(vert_bufs.len() > 0, "no vertex buffers!");
         let mut id: u32 = 0;
         gl_call!(gl::GenVertexArrays(1, &mut id));
         gl_call!(gl::BindVertexArray(id));
@@ -19,6 +18,7 @@ impl VertArray {
         let mut vert_attr_index = 0u32;
         for vert_buf in &vert_bufs {
             vert_buf.bind();
+            // TODO: check if layout is empty and assert error if so.
             for attr in vert_buf.layout.attrs.iter() {
                 gl_call!(gl::EnableVertexAttribArray(vert_attr_index));
                 gl_call!(gl::VertexAttribPointer(
