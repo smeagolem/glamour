@@ -5,10 +5,25 @@ module.exports = {
     nav: [
       { text: 'Technical Report', link: '/tech/' },
       { text: 'Development Notes', link: '/dev/' },
-      { text: 'API', link: '/api/' },
+      { text: 'API', link: '/doc/glamour/index.html', target: '_blank', rel: 'noopener noreferrer' },
     ],
     repo: 'smeagolem/glamour',
     lastUpdated: true,
+    sidebar: {
+      '/dev/': [
+        {
+          title: 'Development Notes',
+          collapsable: false,
+          sidebarDepth: 2,
+          children: [
+            ['', 'Table of Contents'],
+            '2020-04-23-basic-lighting',
+            '2020-04-20-the-crit-path-to-deferred-shading',
+            '2020-04-16-finding-problems',
+          ],
+        },
+      ],
+    },
   },
   evergreen: true,
   plugins: {
