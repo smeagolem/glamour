@@ -1,4 +1,5 @@
 use glamour::{glm, Camera, ForwardRenderer, Layer, Transform};
+use rand::{Rng, SeedableRng};
 
 pub struct SquareLayer {
     fr: ForwardRenderer,
@@ -10,30 +11,22 @@ pub struct SquareLayer {
 
 impl SquareLayer {
     pub fn new(name: &str) -> Self {
-        let fr = ForwardRenderer::new();
-        let cube_positions = vec![
-            glm::vec3(0.0, 0.0, 0.0),
-            glm::vec3(2.0, 5.0, -15.0),
-            glm::vec3(-2.5, -2.2, -3.5),
-            glm::vec3(-4.8, -2.0, -12.3),
-            glm::vec3(3.4, -0.4, -8.5),
-            glm::vec3(-2.7, 3.0, -7.5),
-            glm::vec3(3.3, -2.0, -3.5),
-            glm::vec3(2.5, 4.0, -5.5),
-            glm::vec3(4.5, 0.2, -2.5),
-            glm::vec3(-2.3, 1.0, -1.5),
-        ];
-        let cube_transforms = cube_positions
-            .iter()
-            .map(|p| {
-                let mut transform = Transform::new();
-                transform.position = *p;
-                transform
-            })
+        let seed = 911;
+        let rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
+        let range = rand::distributions::Uniform::from(-100.0..100.0);
+
+        let cube_count = 1_000;
+        let cube_transforms: Vec<Transform> = rng
+            .sample_iter(range)
+            .take(cube_count * 3)
+            .collect::<Vec<f32>>()
+            .chunks_exact(3)
+            .map(glm::make_vec3)
+            .map(Transform::from_pos)
             .collect();
 
         SquareLayer {
-            fr,
+            fr: ForwardRenderer::new(),
             name: name.to_string(),
             time: std::time::Instant::now(),
             camera: Camera::new(),
@@ -88,17 +81,17 @@ impl Layer for SquareLayer {
             scale: glm::vec3(4.0, 4.0, 1.0),
         });
         for (index, transform) in self.cube_transforms.iter_mut().enumerate() {
-            transform.position = glm::vec3(
-                transform.position.x,
-                (time + 2.0 * index as f32).sin(),
-                transform.position.z,
-            );
-            transform.rotation = glm::quat_rotate(
-                &transform.rotation,
-                glm::radians(&glm::vec1((index + 1) as f32 * delta_time * 20.0)).x,
-                &glm::vec3(0.5, 1.0, 0.0),
-            );
-            transform.scale = glm::vec3(1.0, (time + index as f32).sin() + 1.5, 1.0);
+            // transform.position = glm::vec3(
+            //     transform.position.x,
+            //     (time + 2.0 * index as f32).sin(),
+            //     transform.position.z,
+            // );
+            // transform.rotation = glm::quat_rotate(
+            //     &transform.rotation,
+            //     glm::radians(&glm::vec1((index + 1) as f32 * delta_time * 20.0)).x,
+            //     &glm::vec3(0.5, 1.0, 0.0),
+            // );
+            // transform.scale = glm::vec3(1.0, (time + index as f32).sin() + 1.5, 1.0);
             self.fr.draw_cube(&transform);
         }
         self.fr.draw_light(&Transform {

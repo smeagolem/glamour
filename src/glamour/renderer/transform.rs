@@ -19,4 +19,11 @@ impl Transform {
             * glm::quat_cast(&self.rotation)
             * glm::scaling(&self.scale)
     }
+    pub fn from_pos(position: glm::Vec3) -> Self {
+        Transform {
+            position,
+            rotation: glm::quat_identity(),
+            scale: glm::vec3(1.0, 1.0, 1.0),
+        }
+    }
 }
