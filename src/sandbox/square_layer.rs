@@ -13,9 +13,12 @@ impl SquareLayer {
     pub fn new(name: &str) -> Self {
         let seed = 911;
         let rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
-        let range = rand::distributions::Uniform::from(-100.0..100.0);
 
-        let cube_count = 1_000;
+        // let range = rand::distributions::Uniform::from(-10.0..10.0);
+        // let cube_count = 3;
+        let range = rand::distributions::Uniform::from(-100.0..100.0);
+        let cube_count = 10_000;
+
         let cube_transforms: Vec<Transform> = rng
             .sample_iter(range)
             .take(cube_count * 3)
@@ -25,8 +28,16 @@ impl SquareLayer {
             .map(Transform::from_pos)
             .collect();
 
+        let mut fr = ForwardRenderer::new();
+
+        for (index, transform) in cube_transforms.iter().enumerate() {
+            fr.draw_cube(&transform);
+        }
+        fr.cube_trans_vbo.set_data();
+        fr.cube_norm_vbo.set_data();
+
         SquareLayer {
-            fr: ForwardRenderer::new(),
+            fr,
             name: name.to_string(),
             time: std::time::Instant::now(),
             camera: Camera::new(),
@@ -65,21 +76,21 @@ impl Layer for SquareLayer {
         // );
 
         self.fr.begin_draw(&self.camera);
-        self.fr.draw_cube(&Transform {
-            position: glm::vec3(0.0, -5.0, 0.0),
-            rotation: glm::quat_identity(),
-            scale: glm::vec3(10.0, 1.0, 10.0),
-        });
-        self.fr.draw_quad(&Transform {
-            position: glm::vec3(-2.0, 1.0, 2.0),
-            rotation: glm::quat_identity(),
-            scale: glm::vec3(4.0, 4.0, 1.0),
-        });
-        self.fr.draw_triangle(&Transform {
-            position: glm::vec3(-2.0, -3.0, 2.0),
-            rotation: glm::quat_identity(),
-            scale: glm::vec3(4.0, 4.0, 1.0),
-        });
+        // self.fr.draw_cube(&Transform {
+        //     position: glm::vec3(0.0, -5.0, 0.0),
+        //     rotation: glm::quat_identity(),
+        //     scale: glm::vec3(10.0, 1.0, 10.0),
+        // });
+        // self.fr.draw_quad(&Transform {
+        //     position: glm::vec3(-2.0, 1.0, 2.0),
+        //     rotation: glm::quat_identity(),
+        //     scale: glm::vec3(4.0, 4.0, 1.0),
+        // });
+        // self.fr.draw_triangle(&Transform {
+        //     position: glm::vec3(-2.0, -3.0, 2.0),
+        //     rotation: glm::quat_identity(),
+        //     scale: glm::vec3(4.0, 4.0, 1.0),
+        // });
         for (index, transform) in self.cube_transforms.iter_mut().enumerate() {
             // transform.position = glm::vec3(
             //     transform.position.x,
@@ -92,7 +103,7 @@ impl Layer for SquareLayer {
             //     &glm::vec3(0.5, 1.0, 0.0),
             // );
             // transform.scale = glm::vec3(1.0, (time + index as f32).sin() + 1.5, 1.0);
-            self.fr.draw_cube(&transform);
+            // self.fr.draw_cube(&transform);
         }
         self.fr.draw_light(&Transform {
             // position: glm::vec3(4.0, 4.0, 4.0),

@@ -9,7 +9,8 @@ pub use renderer::renderer::*;
 pub use shader::*;
 pub use texture::*;
 pub use transform::*;
-pub use vertex::*;
+pub use vert_basic::*;
+pub use vert_trans::*;
 pub use vertex_array::*;
 
 mod layer;
