@@ -15,9 +15,10 @@ impl Transform {
         }
     }
     pub fn matrix(&self) -> glm::Mat4 {
-        glm::translation(&self.position)
-            * glm::quat_cast(&self.rotation)
-            * glm::scaling(&self.scale)
+        glm::scale(
+            &(glm::translation(&self.position) * glm::quat_to_mat4(&self.rotation)),
+            &self.scale,
+        )
     }
     pub fn from_pos(position: glm::Vec3) -> Self {
         Transform {

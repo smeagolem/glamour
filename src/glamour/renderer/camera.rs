@@ -25,7 +25,7 @@ impl Camera {
             self.aspect,
             glm::radians(&glm::vec1(self.fov)).x,
             0.1,
-            100.0,
+            400.0,
         )
     }
     pub fn view_projection_matrix(&self) -> glm::Mat4 {

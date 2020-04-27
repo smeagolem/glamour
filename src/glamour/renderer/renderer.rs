@@ -3,6 +3,7 @@ use crate::{
     VertBuf, VertTrans,
 };
 use gl;
+use rayon::prelude::*;
 
 // TODO: make Renderer trait to implement on Forward and Deferred.
 
@@ -12,7 +13,6 @@ pub struct ForwardRenderer {
     cube_vao: VertArray,
     cube_vbo: VertBuf<VertBasic>,
     pub cube_trans_vbo: VertBuf<VertTrans>,
-    pub cube_norm_vbo: VertBuf<VertTrans>,
     cube_tex: Texture,
     light_shader: ShaderProgram,
     light_vao: VertArray,
@@ -31,14 +31,12 @@ impl ForwardRenderer {
         let cube_tex = Texture::new(&img_path);
         // TODO: check in draw functions if overflowing buffer, if so, draw (flush and reset).
         let max_cubes = 1_000_000;
-        let cube_vertices = cube_vertices();
-        let cube_vertices_len = cube_vertices.len();
-        // let max_vertices = max_cubes * cube_vertices().len();
+        let cube_vertices = tex_cube_verts();
+        let cube_indices = tex_cube_inds();
         let cube_vbo = VertBuf::<VertBasic>::new(cube_vertices);
         let cube_trans_vbo = VertBuf::<VertTrans>::new(Vec::with_capacity(max_cubes));
-        let cube_norm_vbo = VertBuf::<VertTrans>::new(Vec::with_capacity(max_cubes));
-        let ibo = IndexBuf::new((0..cube_vertices_len as u32).collect());
-        let cube_vao = VertArray::new(&[&cube_vbo, &cube_trans_vbo, &cube_norm_vbo], ibo);
+        let ibo = IndexBuf::new(cube_indices);
+        let cube_vao = VertArray::new(&[&cube_vbo, &cube_trans_vbo], ibo);
 
         let light_shader =
             ShaderBuilder::new(include_str!("light.vert"), include_str!("light.frag"))
@@ -55,7 +53,6 @@ impl ForwardRenderer {
             cube_vao,
             cube_vbo,
             cube_trans_vbo,
-            cube_norm_vbo,
             cube_tex,
             light_shader,
             light_vao,
@@ -65,10 +62,6 @@ impl ForwardRenderer {
 
     pub fn shader(&self) -> &ShaderProgram {
         &self.cube_shader
-    }
-
-    fn cube_vert_buf(&self) -> &VertBuf<VertBasic> {
-        &self.cube_vbo
     }
 
     fn cube_vert_buf_mut(&mut self) -> &mut VertBuf<VertBasic> {
@@ -120,32 +113,23 @@ impl ForwardRenderer {
         self.light_vao.index_buf_mut().indices_mut().clear();
 
         // draw cubes
-        // self.cube_vert_buf().set_data();
-        // self.cube_vao.index_buf().set_data();
-
-        // self.cube_trans_vbo.set_data();
+        let now = std::time::Instant::now();
+        self.cube_trans_vbo.set_data();
+        println!("set_data: {} ms", now.elapsed().as_millis());
 
         self.cube_shader.bind();
         self.cube_tex.bind();
         self.cube_vao.bind();
-        // println!("{:#?}", self.cube_vao.index_buf().indices());
-        // println!("{:#?}", self.cube_vbo.vertices().len());
-        // println!("{:#?}", self.cube_trans_vbo.vertices().len());
         gl_call!(gl::DrawElementsInstanced(
-            gl::TRIANGLES,                          // mode
-            self.cube_vao.index_buf().len() as i32, // number of indices
-            gl::UNSIGNED_INT,                       // type of an index
-            std::ptr::null(),                       // pointer to indices, nullptr if already bound.
-            self.cube_trans_vbo.vertices().len() as i32,
+            gl::TRIANGLES,                               // mode
+            self.cube_vao.index_buf().len() as i32,      // number of indices
+            gl::UNSIGNED_INT,                            // type of an index
+            std::ptr::null(), // pointer to indices, nullptr if already bound.
+            self.cube_trans_vbo.vertices().len() as i32, // number of instances
         ));
         self.cube_vao.unbind();
         self.cube_tex.unbind();
         self.cube_shader.unbind();
-
-        // self.cube_trans_vbo.vertices_mut().clear();
-
-        // self.cube_vert_buf_mut().vertices_mut().clear();
-        // self.cube_vao.index_buf_mut().indices_mut().clear();
     }
 
     pub fn draw_light(&mut self, transform: &Transform) {
@@ -175,19 +159,28 @@ impl ForwardRenderer {
             .set_float3("u_light_pos", &transform.position);
     }
 
-    pub fn draw_cube(&mut self, transform: &Transform) {
+    pub fn init_cubes(&mut self, count: usize) {
         let vertices = self.cube_trans_vbo.vertices_mut();
-        let trans_mat = transform.matrix();
-        vertices.append(&mut vec![VertTrans {
-            transform: trans_mat,
-            // normal: glm::inverse_transpose(trans_mat),
-            // normal: glm::mat4_to_mat3(&glm::inverse_transpose(trans_mat)),
-        }]);
-        self.cube_norm_vbo
-            .vertices_mut()
-            .append(&mut vec![VertTrans {
-                transform: glm::inverse_transpose(trans_mat),
-            }]);
+        let mut verts: Vec<VertTrans> = (0..count)
+            .map(|_| VertTrans {
+                transform: glm::identity(),
+                normal: glm::identity(),
+            })
+            .collect();
+        vertices.clear();
+        vertices.append(&mut verts);
+    }
+
+    pub fn draw_cubes(&mut self, transforms: &[Transform]) {
+        let vertices = self.cube_trans_vbo.vertices_mut();
+        vertices
+            .par_iter_mut()
+            .zip(transforms.par_iter())
+            .for_each(|(v, t)| {
+                let trans_mat = t.matrix();
+                v.transform = trans_mat;
+                v.normal = glm::mat4_to_mat3(&glm::inverse_transpose(trans_mat));
+            });
     }
 
     pub fn draw_quad(&mut self, transform: &Transform) {
@@ -464,5 +457,159 @@ fn cube_vertices() -> Vec<VertBasic> {
             normal: glm::vec3(0.0, 1.0, 0.0),
             tex_coords: glm::vec2(0.0, 1.0),
         },
+    ]
+}
+
+fn tex_cube_verts() -> Vec<VertBasic> {
+    vec![
+        VertBasic {
+            position: glm::vec3(-0.5, -0.5, -0.5),
+            normal: glm::vec3(0.0, 0.0, -1.0),
+            tex_coords: glm::vec2(0.0, 0.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, -0.5, -0.5),
+            normal: glm::vec3(0.0, 0.0, -1.0),
+            tex_coords: glm::vec2(1.0, 0.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, 0.5, -0.5),
+            normal: glm::vec3(0.0, 0.0, -1.0),
+            tex_coords: glm::vec2(1.0, 1.0),
+        },
+        // 2
+        VertBasic {
+            position: glm::vec3(-0.5, 0.5, -0.5),
+            normal: glm::vec3(0.0, 0.0, -1.0),
+            tex_coords: glm::vec2(0.0, 1.0),
+        },
+        // 0
+        VertBasic {
+            position: glm::vec3(-0.5, -0.5, 0.5),
+            normal: glm::vec3(0.0, 0.0, 1.0),
+            tex_coords: glm::vec2(0.0, 0.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, -0.5, 0.5),
+            normal: glm::vec3(0.0, 0.0, 1.0),
+            tex_coords: glm::vec2(1.0, 0.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, 0.5, 0.5),
+            normal: glm::vec3(0.0, 0.0, 1.0),
+            tex_coords: glm::vec2(1.0, 1.0),
+        },
+        // 6
+        VertBasic {
+            position: glm::vec3(-0.5, 0.5, 0.5),
+            normal: glm::vec3(0.0, 0.0, 1.0),
+            tex_coords: glm::vec2(0.0, 1.0),
+        },
+        // 4
+        VertBasic {
+            position: glm::vec3(-0.5, 0.5, 0.5),
+            normal: glm::vec3(-1.0, 0.0, 0.0),
+            tex_coords: glm::vec2(1.0, 0.0),
+        },
+        VertBasic {
+            position: glm::vec3(-0.5, 0.5, -0.5),
+            normal: glm::vec3(-1.0, 0.0, 0.0),
+            tex_coords: glm::vec2(1.0, 1.0),
+        },
+        VertBasic {
+            position: glm::vec3(-0.5, -0.5, -0.5),
+            normal: glm::vec3(-1.0, 0.0, 0.0),
+            tex_coords: glm::vec2(0.0, 1.0),
+        },
+        // 10
+        VertBasic {
+            position: glm::vec3(-0.5, -0.5, 0.5),
+            normal: glm::vec3(-1.0, 0.0, 0.0),
+            tex_coords: glm::vec2(0.0, 0.0),
+        },
+        // 8
+        VertBasic {
+            position: glm::vec3(0.5, 0.5, 0.5),
+            normal: glm::vec3(1.0, 0.0, 0.0),
+            tex_coords: glm::vec2(1.0, 0.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, 0.5, -0.5),
+            normal: glm::vec3(1.0, 0.0, 0.0),
+            tex_coords: glm::vec2(1.0, 1.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, -0.5, -0.5),
+            normal: glm::vec3(1.0, 0.0, 0.0),
+            tex_coords: glm::vec2(0.0, 1.0),
+        },
+        // 14
+        VertBasic {
+            position: glm::vec3(0.5, -0.5, 0.5),
+            normal: glm::vec3(1.0, 0.0, 0.0),
+            tex_coords: glm::vec2(0.0, 0.0),
+        },
+        // 12
+        VertBasic {
+            position: glm::vec3(-0.5, -0.5, -0.5),
+            normal: glm::vec3(0.0, -1.0, 0.0),
+            tex_coords: glm::vec2(0.0, 1.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, -0.5, -0.5),
+            normal: glm::vec3(0.0, -1.0, 0.0),
+            tex_coords: glm::vec2(1.0, 1.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, -0.5, 0.5),
+            normal: glm::vec3(0.0, -1.0, 0.0),
+            tex_coords: glm::vec2(1.0, 0.0),
+        },
+        // 18
+        VertBasic {
+            position: glm::vec3(-0.5, -0.5, 0.5),
+            normal: glm::vec3(0.0, -1.0, 0.0),
+            tex_coords: glm::vec2(0.0, 0.0),
+        },
+        // 16
+        VertBasic {
+            position: glm::vec3(-0.5, 0.5, -0.5),
+            normal: glm::vec3(0.0, 1.0, 0.0),
+            tex_coords: glm::vec2(0.0, 1.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, 0.5, -0.5),
+            normal: glm::vec3(0.0, 1.0, 0.0),
+            tex_coords: glm::vec2(1.0, 1.0),
+        },
+        VertBasic {
+            position: glm::vec3(0.5, 0.5, 0.5),
+            normal: glm::vec3(0.0, 1.0, 0.0),
+            tex_coords: glm::vec2(1.0, 0.0),
+        },
+        // 22
+        VertBasic {
+            position: glm::vec3(-0.5, 0.5, 0.5),
+            normal: glm::vec3(0.0, 1.0, 0.0),
+            tex_coords: glm::vec2(0.0, 0.0),
+        },
+        // 20
+    ]
+}
+
+fn tex_cube_inds() -> Vec<u32> {
+    vec![
+        0, 1, 2, //
+        2, 3, 0, //
+        4, 5, 6, //
+        6, 7, 4, //
+        8, 9, 10, //
+        10, 11, 8, //
+        12, 13, 14, //
+        14, 15, 12, //
+        16, 17, 18, //
+        18, 19, 16, //
+        20, 21, 22, //
+        22, 23, 20, //
     ]
 }

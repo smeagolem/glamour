@@ -1,4 +1,3 @@
-use crate::glm;
 use std::convert::TryFrom;
 
 pub struct VertArray {
@@ -25,13 +24,15 @@ impl VertArray {
                         for index in 0..4 {
                             let attr_index = vert_attr_index + index;
                             gl_call!(gl::EnableVertexAttribArray(attr_index));
+                            // TODO: seemingly, the component count is always 4, could hardwire it: https://stackoverflow.com/questions/23629776/setup-of-matrix-for-instance-shader/23639372#23639372
+                            let component_count = 4;
                             gl_call!(gl::VertexAttribPointer(
                                 attr_index,
-                                4 as i32,
+                                component_count as i32,
                                 attr.gl_data_type(),
                                 if attr.normalized { gl::TRUE } else { gl::FALSE },
-                                std::mem::size_of::<glm::Mat4>() as i32,
-                                (attr.gl_data_type_size() * index as usize * 4)
+                                layout.stride as i32,
+                                (attr.offset + attr.gl_data_type_size() * 4 * index as usize)
                                     as *const gl::types::GLvoid,
                             ));
                             // FIXME: this should only run if attr is for instancing
@@ -42,16 +43,22 @@ impl VertArray {
                     VertAttrType::Mat3 => {
                         for index in 0..3 {
                             let attr_index = vert_attr_index + index;
-                            let size = if index == 0 || index == 1 { 3 } else { 1 };
                             gl_call!(gl::EnableVertexAttribArray(attr_index));
+                            let component_count = 4;
+                            // XXX: seems like mat3 is interpreted as literally:
+                            // layout(location = 7) in vec3 in_norm_mat[0];
+                            // layout(location = 8) in vec3 in_norm_mat[3];
+                            // layout(location = 9) in vec3 in_norm_mat[6];
+                            // so offsets needs to be [3, 3, 3], not [4, 4, 1]
+                            let offset =
+                                attr.offset + attr.gl_data_type_size() * 3 * index as usize;
                             gl_call!(gl::VertexAttribPointer(
                                 attr_index,
-                                size as i32,
+                                component_count as i32,
                                 attr.gl_data_type(),
                                 if attr.normalized { gl::TRUE } else { gl::FALSE },
-                                std::mem::size_of::<glm::Mat3>() as i32,
-                                (attr.gl_data_type_size() * index as usize * 4)
-                                    as *const gl::types::GLvoid,
+                                layout.stride as i32,
+                                offset as *const gl::types::GLvoid,
                             ));
                             // FIXME: this should only run if attr is for instancing
                             gl_call!(gl::VertexAttribDivisor(attr_index, 1));
@@ -223,7 +230,7 @@ impl<T: Vert> VertBuf<T> {
             gl::ARRAY_BUFFER, // target buffer type
             size,             // size of data in bytes
             ptr,              // pointer to data
-            gl::STATIC_DRAW,  // usage hint
+            gl::DYNAMIC_DRAW, // usage hint
         ));
         gl_call!(gl::BindBuffer(gl::ARRAY_BUFFER, 0));
         VertBuf {
@@ -281,6 +288,7 @@ impl VertLayout {
         let attrs = attrs
             .iter_mut()
             .map(|vert_attr| {
+                // TODO: calculate offsets as Vec<u32> for sizes > 16 bytes, e.g. Mat4 = [0, 16, 32, 48] or Mat3 = [0, 12, 24]
                 vert_attr.offset = offset;
                 let size = vert_attr.size();
                 offset += size;
@@ -318,6 +326,7 @@ impl VertAttr {
             VertAttrType::Mat4 => 4 * 4,
         }
     }
+    /// Size of attribute in bytes.
     pub fn size(&self) -> usize {
         self.gl_data_type_size() * self.count()
     }
