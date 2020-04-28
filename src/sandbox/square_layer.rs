@@ -1,3 +1,4 @@
+use bracket_noise::prelude::*;
 use glamour::{glm, Camera, ForwardRenderer, Layer, Transform};
 use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
@@ -9,12 +10,15 @@ pub struct SquareLayer {
     camera: Camera,
     // cube_transforms: Vec<Transform>,
     // rng: rand_chacha::ChaCha8Rng,
+    noise: FastNoise,
 }
 
 impl SquareLayer {
     pub fn new(name: &str) -> Self {
         let seed = 912;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
+        let mut noise = FastNoise::seeded(seed - 1);
+        noise.set_frequency(0.1);
 
         let range = rand::distributions::Uniform::from(-100.0..100.0);
         let cube_count = 150_000;
@@ -49,6 +53,7 @@ impl SquareLayer {
             camera: Camera::new(),
             // cube_transforms,
             // rng,
+            noise,
         }
     }
 }
@@ -61,7 +66,7 @@ impl Layer for SquareLayer {
         // animate camera
         {
             let speed = 0.1;
-            let radius = 10.0;
+            let radius = 10.1;
             let cam_x = (time * speed).sin() * radius;
             let cam_z = (time * speed).cos() * radius;
             self.camera.position = glm::vec3(cam_x, 0.0, cam_z);
@@ -142,11 +147,18 @@ impl Layer for SquareLayer {
         // self.fr.draw_cubes(&self.cube_transforms);
         // println!("draw_cubes: {} ms", now.elapsed().as_millis());
 
-        self.fr.draw_light(&Transform {
-            // position: glm::vec3(4.0, 4.0, 4.0),
-            position: glm::vec3(4.0, (time * 2.0).sin() * 4.0, 4.0),
-            rotation: glm::quat_identity(),
-            scale: glm::vec3(1.0, 1.0, 1.0),
+        let distance = 50.0;
+        (0..32).for_each(|index| {
+            let offset = index as f32;
+            self.fr.draw_light(&Transform {
+                position: glm::vec3(
+                    self.noise.get_noise3d(time + offset, 0.0, 0.0),
+                    self.noise.get_noise3d(0.0, time + offset, 0.0),
+                    self.noise.get_noise3d(0.0, 0.0, time + offset),
+                ) * distance,
+                rotation: glm::quat_identity(),
+                scale: glm::vec3(1.0, 1.0, 1.0),
+            });
         });
         self.fr.end_draw();
     }

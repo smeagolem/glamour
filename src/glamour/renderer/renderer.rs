@@ -17,6 +17,7 @@ pub struct ForwardRenderer {
     light_shader: ShaderProgram,
     light_vao: VertArray,
     light_vbo: VertBuf<VertBasic>,
+    light_count: u32,
 }
 
 impl ForwardRenderer {
@@ -57,6 +58,7 @@ impl ForwardRenderer {
             light_shader,
             light_vao,
             light_vbo,
+            light_count: 0,
         }
     }
 
@@ -116,6 +118,7 @@ impl ForwardRenderer {
         self.light_shader.unbind();
         self.light_vert_buf_mut().vertices_mut().clear();
         self.light_vao.index_buf_mut().indices_mut().clear();
+        self.light_count = 0;
 
         // draw cubes
         let now = std::time::Instant::now();
@@ -160,8 +163,11 @@ impl ForwardRenderer {
         let mut new_indices: Vec<u32> = (vl_pre as u32..vl_post as u32).collect();
         indices.append(&mut new_indices);
 
-        self.cube_shader
-            .set_float3("u_light_pos", &transform.position);
+        self.cube_shader.set_float3(
+            &format!("u_point_lights[{}].position", self.light_count),
+            &transform.position,
+        );
+        self.light_count += 1;
     }
 
     pub fn init_cubes(&mut self, count: usize) {
