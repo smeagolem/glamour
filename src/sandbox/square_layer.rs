@@ -13,13 +13,13 @@ pub struct SquareLayer {
 
 impl SquareLayer {
     pub fn new(name: &str) -> Self {
-        let seed = 911;
+        let seed = 912;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
 
         let range = rand::distributions::Uniform::from(-100.0..100.0);
         let cube_count = 150_000;
 
-        let cube_transforms: Vec<Transform> = (&mut rng)
+        let mut cube_transforms: Vec<Transform> = (&mut rng)
             .sample_iter(range)
             .take(cube_count * 3)
             .collect::<Vec<f32>>()
@@ -33,9 +33,10 @@ impl SquareLayer {
         fr.init_cubes(cube_count);
         let vertices = fr.cube_trans_vbo.vertices_mut();
         vertices
-            .par_iter_mut()
-            .zip(cube_transforms.par_iter())
+            .iter_mut()
+            .zip(cube_transforms.iter_mut())
             .for_each(|(v, t)| {
+                t.rotation = rng.gen::<glm::Quat>().normalize();
                 let trans_mat = t.matrix();
                 v.transform = trans_mat;
                 v.normal = glm::mat4_to_mat3(&glm::inverse_transpose(trans_mat));
@@ -59,12 +60,13 @@ impl Layer for SquareLayer {
 
         // animate camera
         {
+            let speed = 0.1;
             let radius = 10.0;
-            let cam_x = time.sin() * radius;
-            let cam_z = time.cos() * radius;
+            let cam_x = (time * speed).sin() * radius;
+            let cam_z = (time * speed).cos() * radius;
             self.camera.position = glm::vec3(cam_x, 0.0, cam_z);
             self.camera.target = glm::vec3(0.0, 0.0, 0.0);
-            self.camera.fov = 90.0 + time.sin() * 30.0;
+            // self.camera.fov = 90.0 + time.sin() * 30.0;
         }
 
         // self.camera.position = glm::vec3(0.0, 0.0, 10.0);
@@ -106,15 +108,15 @@ impl Layer for SquareLayer {
             .for_each(|(index, vertex)| {
                 vertex.transform = glm::rotate(
                     &vertex.transform,
-                    glm::radians(&glm::vec1(delta_time * 200.0 + (index % 10) as f32)).x,
+                    glm::radians(&glm::vec1(200.0 + (index % 100) as f32)).x * delta_time,
                     &glm::vec3(0.5, 1.0, 0.0),
                     // &(self.rng.gen()),
                     // &self.rand_axes[index % 1000],
                 );
-                vertex.transform = glm::scale(&vertex.transform, &glm::vec3(1.0, 1.0, 1.0));
+                // vertex.transform = glm::scale(&vertex.transform, &glm::vec3(1.0, 1.0, 1.0));
                 vertex.normal = glm::mat4_to_mat3(&glm::inverse_transpose(vertex.transform));
             });
-        println!("vertex loop: {} ms", now.elapsed().as_millis());
+        // println!("vertex loop: {} ms", now.elapsed().as_millis());
 
         // let now = std::time::Instant::now();
         // let cube_transforms = &mut self.cube_transforms;

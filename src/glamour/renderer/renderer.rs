@@ -27,7 +27,7 @@ impl ForwardRenderer {
             ShaderBuilder::new(include_str!("triangle.vert"), include_str!("triangle.frag"))
                 .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
                 .build();
-        let img_path = crate::assets_path().join("container.jpg");
+        let img_path = crate::assets_path().join("tile_bookcaseFull.png");
         let cube_tex = Texture::new(&img_path);
         // TODO: check in draw functions if overflowing buffer, if so, draw (flush and reset).
         let max_cubes = 1_000_000;
@@ -77,7 +77,12 @@ impl ForwardRenderer {
     }
 
     pub fn clear(&self) {
-        gl_call!(gl::ClearColor(0.3, 0.3, 0.5, 1.0));
+        gl_call!(gl::ClearColor(
+            20.0 / 255.0,
+            24.0 / 255.0,
+            82.0 / 255.0,
+            1.0
+        ));
         gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
     }
 
@@ -115,7 +120,7 @@ impl ForwardRenderer {
         // draw cubes
         let now = std::time::Instant::now();
         self.cube_trans_vbo.set_data();
-        println!("set_data: {} ms", now.elapsed().as_millis());
+        // println!("set_data: {} ms", now.elapsed().as_millis());
 
         self.cube_shader.bind();
         self.cube_tex.bind();
