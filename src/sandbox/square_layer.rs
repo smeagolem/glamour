@@ -8,13 +8,16 @@ pub struct SquareLayer {
     name: String,
     time: std::time::Instant,
     camera: Camera,
-    // cube_transforms: Vec<Transform>,
+    cube_transforms: Vec<Transform>,
+    light_transforms: Vec<Transform>,
     // rng: rand_chacha::ChaCha8Rng,
     noise: FastNoise,
 }
 
 impl SquareLayer {
     pub fn new(name: &str) -> Self {
+        let fr = ForwardRenderer::new();
+
         let seed = 912;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
         let mut noise = FastNoise::seeded(seed - 1);
@@ -23,7 +26,7 @@ impl SquareLayer {
         let range = rand::distributions::Uniform::from(-100.0..100.0);
         let cube_count = 150_000;
 
-        let mut cube_transforms: Vec<Transform> = (&mut rng)
+        let cube_transforms: Vec<Transform> = (&mut rng)
             .sample_iter(range)
             .take(cube_count * 3)
             .collect::<Vec<f32>>()
@@ -32,26 +35,16 @@ impl SquareLayer {
             .map(Transform::from_pos)
             .collect();
 
-        let mut fr = ForwardRenderer::new();
-
-        fr.init_cubes(cube_count);
-        let vertices = fr.cube_trans_vbo.vertices_mut();
-        vertices
-            .iter_mut()
-            .zip(cube_transforms.iter_mut())
-            .for_each(|(v, t)| {
-                t.rotation = rng.gen::<glm::Quat>().normalize();
-                let trans_mat = t.matrix();
-                v.transform = trans_mat;
-                v.normal = glm::mat4_to_mat3(&glm::inverse_transpose(trans_mat));
-            });
+        let mut light_transforms: Vec<Transform> = Vec::new();
+        light_transforms.resize_with(32, std::default::Default::default);
 
         SquareLayer {
             fr,
             name: name.to_string(),
             time: std::time::Instant::now(),
             camera: Camera::new(),
-            // cube_transforms,
+            cube_transforms,
+            light_transforms,
             // rng,
             noise,
         }
@@ -105,61 +98,33 @@ impl Layer for SquareLayer {
         //     scale: glm::vec3(4.0, 4.0, 1.0),
         // });
 
-        let now = std::time::Instant::now();
-        let vertices = self.fr.cube_trans_vbo.vertices_mut();
-        vertices
+        self.cube_transforms
             .par_iter_mut()
             .enumerate()
-            .for_each(|(index, vertex)| {
-                vertex.transform = glm::rotate(
-                    &vertex.transform,
+            .for_each(|(index, transform)| {
+                transform.rotation = glm::quat_rotate(
+                    &transform.rotation,
                     glm::radians(&glm::vec1(200.0 + (index % 100) as f32)).x * delta_time,
                     &glm::vec3(0.5, 1.0, 0.0),
-                    // &(self.rng.gen()),
-                    // &self.rand_axes[index % 1000],
                 );
-                // vertex.transform = glm::scale(&vertex.transform, &glm::vec3(1.0, 1.0, 1.0));
-                vertex.normal = glm::mat4_to_mat3(&glm::inverse_transpose(vertex.transform));
             });
-        // println!("vertex loop: {} ms", now.elapsed().as_millis());
-
-        // let now = std::time::Instant::now();
-        // let cube_transforms = &mut self.cube_transforms;
-        // cube_transforms
-        //     .par_iter_mut()
-        //     .enumerate()
-        //     .for_each(|(index, transform)| {
-        //         // transform.position = glm::vec3(
-        //         //     transform.position.x,
-        //         //     (time + 2.0 * index as f32).sin(),
-        //         //     transform.position.z,
-        //         // );
-        //         transform.rotation = glm::quat_rotate(
-        //             &transform.rotation,
-        //             glm::radians(&glm::vec1(delta_time * 200.0 + (index % 10) as f32)).x,
-        //             // &(self.rng.gen()),
-        //             &glm::vec3(0.5, 1.0, 0.0),
-        //         );
-        //         // transform.scale = glm::vec3(1.0, (time + index as f32).sin() + 1.5, 1.0);
-        //         transform.scale = glm::vec3(1.0, 1.0, 1.0);
-        //         // self.fr.draw_cube(&transform);
-        //     });
-        // self.fr.draw_cubes(&self.cube_transforms);
-        // println!("draw_cubes: {} ms", now.elapsed().as_millis());
+        self.fr.set_cubes(&self.cube_transforms);
 
         let distance = 50.0;
-        (0..32).for_each(|index| {
-            let offset = index as f32;
-            self.fr.draw_light(&Transform {
-                position: glm::vec3(
-                    self.noise.get_noise3d(time + offset, 0.0, 0.0),
-                    self.noise.get_noise3d(0.0, time + offset, 0.0),
-                    self.noise.get_noise3d(0.0, 0.0, time + offset),
-                ) * distance,
-                rotation: glm::quat_identity(),
-                scale: glm::vec3(1.0, 1.0, 1.0),
+        let noise = &self.noise;
+        self.light_transforms
+            .par_iter_mut()
+            .enumerate()
+            .for_each(|(index, transform)| {
+                let offset = index as f32;
+                transform.position = glm::vec3(
+                    noise.get_noise3d(time + offset, 0.0, 0.0),
+                    noise.get_noise3d(0.0, time + offset, 0.0),
+                    noise.get_noise3d(0.0, 0.0, time + offset),
+                ) * distance
             });
-        });
+        self.fr.set_lights(&self.light_transforms);
+
         self.fr.end_draw();
     }
     fn name(&self) -> &String {

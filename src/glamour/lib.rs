@@ -216,10 +216,6 @@ impl Application {
                     Event::LoopDestroyed => (),
                     Event::RedrawRequested(_) => {
                         // application-specific rendering *under the UI*
-                        unsafe {
-                            gl::ClearColor(1.0, 0.5, 0.7, 1.0);
-                            gl::Clear(gl::COLOR_BUFFER_BIT);
-                        }
 
                         for layer in &mut layers {
                             layer.on_frame_update(&mut app_context);
