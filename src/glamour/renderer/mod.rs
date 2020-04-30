@@ -8,3 +8,5 @@ pub mod vert_trans;
 
 // TODO: rename to vert_array
 pub mod vertex_array;
+
+pub mod g_buf;

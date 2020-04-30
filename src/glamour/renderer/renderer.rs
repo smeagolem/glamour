@@ -1,6 +1,6 @@
 use crate::{
-    glm, Camera, IndexBuf, ShaderBuilder, ShaderProgram, Texture, Transform, VertArray, VertBasic,
-    VertBuf, VertTrans,
+    glm, Camera, GBuf, IndexBuf, ShaderBuilder, ShaderProgram, Texture, Transform, VertArray,
+    VertBasic, VertBuf, VertTrans,
 };
 use gl;
 use rayon::prelude::*;
@@ -18,11 +18,17 @@ pub struct ForwardRenderer {
     light_vao: VertArray,
     light_vbo: VertBuf<VertBasic>,
     light_trans_vbo: VertBuf<VertTrans>,
+    g_buf: GBuf,
+    lit_def_geo: ShaderProgram,
+    lit_def_light: ShaderProgram,
+    ndc_quad_vbo: VertBuf<VertBasic>,
+    ndc_quad_vao: VertArray,
 }
 
 impl ForwardRenderer {
     pub fn new() -> ForwardRenderer {
         gl_call!(gl::Enable(gl::DEPTH_TEST));
+        gl_call!(gl::Disable(gl::BLEND));
 
         let cube_shader =
             ShaderBuilder::new(include_str!("triangle.vert"), include_str!("triangle.frag"))
@@ -48,6 +54,25 @@ impl ForwardRenderer {
         let ibo = IndexBuf::new(tex_cube_inds());
         let light_vao = VertArray::new(&[&light_vbo, &light_trans_vbo], ibo);
 
+        let lit_def_geo = ShaderBuilder::new(
+            include_str!("lit_def_geo.vert"),
+            include_str!("lit_def_geo.frag"),
+        )
+        .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
+        .build();
+
+        let lit_def_light = ShaderBuilder::new(
+            include_str!("lit_def_light.vert"),
+            include_str!("lit_def_light.frag"),
+        )
+        .build();
+        lit_def_light.set_int("u_tex_pos", 0);
+        lit_def_light.set_int("u_tex_norm", 1);
+        lit_def_light.set_int("u_tex_alb_spec", 2);
+
+        let ndc_quad_vbo = VertBuf::new(ndc_quad_verts());
+        let ndc_quad_vao = VertArray::new(&[&ndc_quad_vbo], IndexBuf::new(vec![]));
+
         ForwardRenderer {
             cube_shader,
             cube_vao,
@@ -58,6 +83,11 @@ impl ForwardRenderer {
             light_vao,
             light_vbo,
             light_trans_vbo,
+            g_buf: GBuf::new(),
+            lit_def_geo,
+            lit_def_light,
+            ndc_quad_vbo,
+            ndc_quad_vao,
         }
     }
 
@@ -78,18 +108,22 @@ impl ForwardRenderer {
     pub fn begin_draw(&self, camera: &Camera) {
         let vp_mat = camera.view_projection_matrix();
 
-        self.light_shader.bind();
         self.light_shader.set_mat4("u_view_projection", &vp_mat);
-        self.light_shader.unbind();
 
-        self.cube_shader.bind();
         self.cube_shader.set_mat4("u_view_projection", &vp_mat);
         self.cube_shader.set_float3("u_view_pos", &camera.position);
-        self.cube_shader.unbind();
+
+        self.lit_def_geo.set_mat4("u_view_projection", &vp_mat);
+
+        self.lit_def_light
+            .set_float3("u_view_pos", &camera.position);
     }
 
     pub fn end_draw(&mut self) {
-        self.draw_cubes();
+        // self.draw_cubes();
+        // self.draw_lights();
+
+        self.draw_cubes_def();
         self.draw_lights();
     }
 
@@ -122,8 +156,9 @@ impl ForwardRenderer {
         let vertices = self.light_trans_vbo.vertices_mut();
         ForwardRenderer::set_vert_trans(vertices, transforms);
         transforms.iter().enumerate().for_each(|(i, t)| {
-            self.cube_shader
-                .set_float3(&format!("u_point_lights[{}].position", i), &t.position);
+            let name = format!("u_point_lights[{}].position", i);
+            self.cube_shader.set_float3(&name, &t.position);
+            self.lit_def_light.set_float3(&name, &t.position);
         });
     }
 
@@ -157,6 +192,45 @@ impl ForwardRenderer {
         ));
         self.light_vao.unbind();
         self.light_shader.unbind();
+    }
+
+    fn draw_cubes_def(&self) {
+        // must clear black
+        gl_call!(gl::ClearColor(0.0, 0.0, 0.0, 1.0));
+        gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
+
+        // goemetry pass
+        self.g_buf.bind();
+        {
+            gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
+            self.lit_def_geo.bind();
+            self.cube_trans_vbo.set_data();
+            self.cube_tex.bind();
+            self.cube_vao.bind();
+            gl_call!(gl::DrawElementsInstanced(
+                gl::TRIANGLES,
+                self.cube_vao.index_buf().len() as i32,
+                gl::UNSIGNED_INT,
+                std::ptr::null(),
+                self.cube_trans_vbo.vertices().len() as i32,
+            ));
+            self.cube_vao.unbind();
+            self.cube_tex.unbind();
+            self.lit_def_geo.unbind();
+        }
+        self.g_buf.unbind();
+
+        // lighting pass
+        gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
+        {
+            self.lit_def_light.bind();
+            self.g_buf.bind_bufs();
+            self.ndc_quad_vao.bind();
+            gl_call!(gl::DrawArrays(gl::TRIANGLE_STRIP, 0, 4));
+            self.ndc_quad_vao.unbind();
+            self.g_buf.unbind_bufs();
+            self.lit_def_light.unbind();
+        }
     }
 
     pub fn draw_quad(&mut self, _transform: &Transform) {
@@ -319,5 +393,30 @@ fn tex_cube_inds() -> Vec<u32> {
         18, 19, 16, //
         20, 21, 22, //
         22, 23, 20, //
+    ]
+}
+
+fn ndc_quad_verts() -> Vec<VertBasic> {
+    vec![
+        VertBasic {
+            position: glm::vec3(-1.0, 1.0, 0.0),
+            normal: glm::vec3(0.0, 0.0, 1.0),
+            tex_coords: glm::vec2(0.0, 1.0),
+        },
+        VertBasic {
+            position: glm::vec3(-1.0, -1.0, 0.0),
+            normal: glm::vec3(0.0, 0.0, 1.0),
+            tex_coords: glm::vec2(0.0, 0.0),
+        },
+        VertBasic {
+            position: glm::vec3(1.0, 1.0, 0.0),
+            normal: glm::vec3(0.0, 0.0, 1.0),
+            tex_coords: glm::vec2(1.0, 1.0),
+        },
+        VertBasic {
+            position: glm::vec3(1.0, -1.0, 0.0),
+            normal: glm::vec3(0.0, 0.0, 1.0),
+            tex_coords: glm::vec2(1.0, 0.0),
+        },
     ]
 }

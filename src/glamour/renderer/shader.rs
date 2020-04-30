@@ -120,6 +120,14 @@ impl ShaderProgram {
         gl_call!(gl::UseProgram(0));
     }
 
+    pub fn set_int(&self, name: &str, value: i32) {
+        self.bind();
+        let name = CString::new(name).unwrap();
+        let location = gl_call!(gl::GetUniformLocation(self.id(), name.as_ptr()));
+        gl_call!(gl::Uniform1i(location, value));
+        self.unbind();
+    }
+
     pub fn set_float3(&self, name: &str, value: &glm::Vec3) {
         self.bind();
         let name = CString::new(name).unwrap();

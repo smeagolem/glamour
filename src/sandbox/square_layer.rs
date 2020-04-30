@@ -69,7 +69,7 @@ impl Layer for SquareLayer {
 
         // self.camera.position = glm::vec3(0.0, 0.0, 10.0);
 
-        self.fr.clear();
+        // self.fr.clear();
 
         // self.fr.shader().set_float4(
         //     "u_color",

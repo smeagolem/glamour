@@ -5,6 +5,7 @@ mod renderer;
 pub use renderer::*;
 
 pub use camera::*;
+pub use g_buf::*;
 pub use renderer::renderer::*;
 pub use shader::*;
 pub use texture::*;

@@ -50,9 +50,11 @@ impl Texture {
     }
 
     pub fn bind(&self) {
+        gl_call!(gl::ActiveTexture(gl::TEXTURE0));
         gl_call!(gl::BindTexture(gl::TEXTURE_2D, self.id));
     }
     pub fn unbind(&self) {
+        gl_call!(gl::ActiveTexture(gl::TEXTURE0));
         gl_call!(gl::BindTexture(gl::TEXTURE_2D, 0));
     }
 }
