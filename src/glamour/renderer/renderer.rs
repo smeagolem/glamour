@@ -4,6 +4,7 @@ use crate::{
 };
 use gl;
 use rayon::prelude::*;
+use std::time::{Duration, Instant};
 
 // TODO: make Renderer trait to implement on Forward and Deferred.
 
@@ -37,7 +38,7 @@ impl ForwardRenderer {
         let img_path = crate::assets_path().join("tile_bookcaseFull.png");
         let cube_tex = Texture::new(&img_path);
         // TODO: check in draw functions if overflowing buffer, if so, draw (flush and reset).
-        let max_cubes = 1_000_000;
+        let max_cubes = 200_000;
         let cube_vbo = VertBuf::<VertBasic>::new(tex_cube_verts());
         let cube_trans_vbo = VertBuf::<VertTrans>::new(Vec::with_capacity(max_cubes));
         let ibo = IndexBuf::new(tex_cube_inds());
@@ -96,13 +97,28 @@ impl ForwardRenderer {
     }
 
     pub fn clear(&self) {
-        gl_call!(gl::ClearColor(
-            20.0 / 255.0,
-            24.0 / 255.0,
-            82.0 / 255.0,
-            1.0
-        ));
+        // gl_call!(gl::ClearColor(
+        //     20.0 / 255.0,
+        //     24.0 / 255.0,
+        //     82.0 / 255.0,
+        //     1.0
+        // ));
+        gl_call!(gl::ClearColor(0.0, 0.0, 0.0, 1.0));
         gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
+    }
+
+    pub fn resize(&self, width: u32, height: u32) {
+        self.g_buf.resize(width, height)
+    }
+
+    pub fn handle_event(&self, event: &glutin::event::Event<()>) {
+        match event {
+            glutin::event::Event::WindowEvent {
+                event: glutin::event::WindowEvent::Resized(physical_size),
+                ..
+            } => self.resize(physical_size.width, physical_size.height),
+            _ => (),
+        }
     }
 
     pub fn begin_draw(&self, camera: &Camera) {
@@ -120,11 +136,12 @@ impl ForwardRenderer {
     }
 
     pub fn end_draw(&mut self) {
+        // self.clear();
         // self.draw_cubes();
         // self.draw_lights();
 
         self.draw_cubes_def();
-        self.draw_lights();
+        // self.draw_lights();
     }
 
     pub fn set_vert_trans(vertices: &mut Vec<VertTrans>, transforms: &[Transform]) {
@@ -194,7 +211,9 @@ impl ForwardRenderer {
         self.light_shader.unbind();
     }
 
-    fn draw_cubes_def(&self) {
+    fn draw_cubes_def(&mut self) {
+        self.cube_trans_vbo.set_data();
+
         // must clear black
         gl_call!(gl::ClearColor(0.0, 0.0, 0.0, 1.0));
         gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
@@ -204,7 +223,6 @@ impl ForwardRenderer {
         {
             gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
             self.lit_def_geo.bind();
-            self.cube_trans_vbo.set_data();
             self.cube_tex.bind();
             self.cube_vao.bind();
             gl_call!(gl::DrawElementsInstanced(

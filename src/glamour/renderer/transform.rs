@@ -1,6 +1,7 @@
 use crate::glm;
 use std::default::Default;
 
+#[derive(Copy, Clone)]
 pub struct Transform {
     pub position: glm::Vec3,
     pub rotation: glm::Quat,

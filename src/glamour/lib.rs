@@ -44,6 +44,11 @@ pub struct AppContext {
 }
 
 impl AppContext {
+    pub fn windowed_context(
+        &self,
+    ) -> &ContextWrapper<glutin::PossiblyCurrent, glutin::window::Window> {
+        &self.windowed_context
+    }
     pub fn delta_time(&self) -> Duration {
         self.delta_time
     }
@@ -159,6 +164,10 @@ impl Application {
 
         // let mut ahead_frame_skip_count: u64 = 0;
         // let mut behind_frame_skip_count: u64 = 0;
+
+        for layer in &mut layers {
+            layer.init(&mut app_context);
+        }
 
         self.event_loop.run(
             move |event: Event<()>,

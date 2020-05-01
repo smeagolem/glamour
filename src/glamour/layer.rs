@@ -1,4 +1,5 @@
 pub trait Layer {
+    fn init(&mut self, _app_context: &mut crate::AppContext) {}
     fn on_event(
         &mut self,
         _event: &glutin::event::Event<()>,
