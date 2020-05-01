@@ -458,7 +458,7 @@ dependencies = [
 
 [[package]]
 name = "glamour"
-version = "0.8.0"
+version = "0.8.1"
 dependencies = [
  "bracket-noise 0.8.1 (registry+https://github.com/rust-lang/crates.io-index)",
  "copy_dir 0.1.2 (registry+https://github.com/rust-lang/crates.io-index)",
