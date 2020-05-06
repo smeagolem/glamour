@@ -29,7 +29,7 @@ pub struct ForwardRenderer {
 impl ForwardRenderer {
     pub fn new() -> ForwardRenderer {
         gl_call!(gl::Enable(gl::DEPTH_TEST));
-        gl_call!(gl::Disable(gl::BLEND));
+        // gl_call!(gl::Disable(gl::BLEND));
 
         let cube_shader =
             ShaderBuilder::new(include_str!("triangle.vert"), include_str!("triangle.frag"))
@@ -107,11 +107,11 @@ impl ForwardRenderer {
         gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
     }
 
-    pub fn resize(&self, width: u32, height: u32) {
+    pub fn resize(&mut self, width: u32, height: u32) {
         self.g_buf.resize(width, height)
     }
 
-    pub fn handle_event(&self, event: &glutin::event::Event<()>) {
+    pub fn handle_event(&mut self, event: &glutin::event::Event<()>) {
         match event {
             glutin::event::Event::WindowEvent {
                 event: glutin::event::WindowEvent::Resized(physical_size),
@@ -141,7 +141,8 @@ impl ForwardRenderer {
         // self.draw_lights();
 
         self.draw_cubes_def();
-        // self.draw_lights();
+        // self.draw_cubes();
+        self.draw_lights();
     }
 
     pub fn set_vert_trans(vertices: &mut Vec<VertTrans>, transforms: &[Transform]) {
@@ -249,6 +250,9 @@ impl ForwardRenderer {
             self.g_buf.unbind_bufs();
             self.lit_def_light.unbind();
         }
+
+        // blit depth buffer
+        self.g_buf.blit_depth();
     }
 
     pub fn draw_quad(&mut self, _transform: &Transform) {

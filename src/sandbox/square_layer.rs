@@ -27,7 +27,7 @@ impl SquareLayer {
         noise.set_frequency(0.1);
 
         let mut light_transforms: Vec<Transform> = Vec::new();
-        light_transforms.resize_with(512, std::default::Default::default);
+        light_transforms.resize_with(32, std::default::Default::default);
 
         SquareLayer {
             fr,

@@ -5,6 +5,8 @@ pub struct GBuf {
     alb_spec_id: u32,
     attachments: [u32; 3],
     depth_id: u32,
+    width: u32,
+    height: u32,
 }
 
 impl GBuf {
@@ -125,6 +127,8 @@ impl GBuf {
             alb_spec_id,
             attachments,
             depth_id,
+            width,
+            height,
         }
     }
 
@@ -133,6 +137,24 @@ impl GBuf {
     }
 
     pub fn unbind(&self) {
+        gl_call!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
+    }
+
+    pub fn blit_depth(&self) {
+        gl_call!(gl::BindFramebuffer(gl::READ_FRAMEBUFFER, self.id));
+        gl_call!(gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, 0));
+        gl_call!(gl::BlitFramebuffer(
+            0,
+            0,
+            self.width as i32,
+            self.height as i32,
+            0,
+            0,
+            self.width as i32,
+            self.height as i32,
+            gl::DEPTH_BUFFER_BIT,
+            gl::NEAREST
+        ));
         gl_call!(gl::BindFramebuffer(gl::FRAMEBUFFER, 0));
     }
 
@@ -155,7 +177,10 @@ impl GBuf {
         ));
     }
 
-    pub fn resize(&self, width: u32, height: u32) {
+    pub fn resize(&mut self, width: u32, height: u32) {
+        self.width = width;
+        self.height = height;
+
         gl_call!(gl::ActiveTexture(gl::TEXTURE0));
         gl_call!(gl::BindTexture(gl::TEXTURE_2D, self.pos_id));
         GBuf::specify_texture(gl::RGBA32F, gl::FLOAT, width, height);
