@@ -27,7 +27,7 @@ pub struct ForwardRenderer {
 }
 
 impl ForwardRenderer {
-    pub fn new() -> ForwardRenderer {
+    pub fn new(max_cubes: usize, max_lights: usize) -> Self {
         gl_call!(gl::Enable(gl::DEPTH_TEST));
         // gl_call!(gl::Disable(gl::BLEND));
 
@@ -38,7 +38,6 @@ impl ForwardRenderer {
         let img_path = crate::assets_path().join("tile_bookcaseFull.png");
         let cube_tex = Texture::new(&img_path);
         // TODO: check in draw functions if overflowing buffer, if so, draw (flush and reset).
-        let max_cubes = 200_000;
         let cube_vbo = VertBuf::<VertBasic>::new(tex_cube_verts());
         let cube_trans_vbo = VertBuf::<VertTrans>::new(Vec::with_capacity(max_cubes));
         let ibo = IndexBuf::new(tex_cube_inds());
@@ -49,7 +48,6 @@ impl ForwardRenderer {
                 .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
                 .build();
         // TODO: check in draw functions if overflowing buffer, if so, draw (flush and reset).
-        let max_lights = 32;
         let light_vbo = VertBuf::<VertBasic>::new(tex_cube_verts());
         let light_trans_vbo = VertBuf::<VertTrans>::new(Vec::with_capacity(max_lights));
         let ibo = IndexBuf::new(tex_cube_inds());
@@ -136,7 +134,8 @@ impl ForwardRenderer {
     }
 
     pub fn end_draw(&mut self) {
-        // self.clear();
+        self.clear();
+
         // self.draw_cubes();
         // self.draw_lights();
 
@@ -178,6 +177,10 @@ impl ForwardRenderer {
             self.cube_shader.set_float3(&name, &t.position);
             self.lit_def_light.set_float3(&name, &t.position);
         });
+        self.cube_shader
+            .set_int("u_point_lights_count", transforms.len() as i32);
+        self.lit_def_light
+            .set_int("u_point_lights_count", transforms.len() as i32);
     }
 
     fn draw_cubes(&self) {
@@ -215,11 +218,7 @@ impl ForwardRenderer {
     fn draw_cubes_def(&mut self) {
         self.cube_trans_vbo.set_data();
 
-        // must clear black
-        gl_call!(gl::ClearColor(0.0, 0.0, 0.0, 1.0));
-        gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
-
-        // goemetry pass
+        // goemetry pass (must be cleared black beforehand)
         self.g_buf.bind();
         {
             gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));

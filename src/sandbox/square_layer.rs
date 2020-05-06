@@ -5,6 +5,8 @@ use rayon::prelude::*;
 use std::ffi::CString;
 
 pub struct SquareLayer {
+    max_cubes: usize,
+    max_lights: usize,
     fr: ForwardRenderer,
     name: String,
     time: std::time::Instant,
@@ -12,6 +14,7 @@ pub struct SquareLayer {
     cube_count: usize,
     cube_distribution: rand::distributions::Uniform<f32>,
     cube_transforms: Vec<Transform>,
+    light_count: usize,
     light_transforms: Vec<Transform>,
     rng: rand_chacha::ChaCha8Rng,
     noise: FastNoise,
@@ -19,17 +22,18 @@ pub struct SquareLayer {
 
 impl SquareLayer {
     pub fn new(name: &str) -> Self {
-        let fr = ForwardRenderer::new();
+        let max_cubes = 200_000;
+        let max_lights = 1019;
+        let fr = ForwardRenderer::new(max_cubes, max_lights);
 
         let seed = 912;
         let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
         let mut noise = FastNoise::seeded(seed - 1);
         noise.set_frequency(0.1);
 
-        let mut light_transforms: Vec<Transform> = Vec::new();
-        light_transforms.resize_with(32, std::default::Default::default);
-
         SquareLayer {
+            max_cubes,
+            max_lights,
             fr,
             name: name.to_string(),
             time: std::time::Instant::now(),
@@ -37,7 +41,8 @@ impl SquareLayer {
             cube_count: 50_000,
             cube_distribution: rand::distributions::Uniform::from(-100.0..100.0),
             cube_transforms: Vec::new(),
-            light_transforms,
+            light_count: 32,
+            light_transforms: Vec::new(),
             rng,
             noise,
         }
@@ -83,6 +88,14 @@ impl Layer for SquareLayer {
         let range = &self.cube_distribution;
 
         self.cube_transforms.resize_with(self.cube_count, || {
+            Transform::from_pos(glm::vec3(
+                rng.sample(range),
+                rng.sample(range),
+                rng.sample(range),
+            ))
+        });
+
+        self.light_transforms.resize_with(self.light_count, || {
             Transform::from_pos(glm::vec3(
                 rng.sample(range),
                 rng.sample(range),
@@ -150,16 +163,35 @@ impl Layer for SquareLayer {
             .save_settings(false)
             .collapsed(false, imgui::Condition::FirstUseEver)
             .build(&ui, || {
-                let mut cube_count = self.cube_count as i32;
-                unsafe {
-                    if imgui::sys::igSliderInt(
-                        CString::new("Cube Count").unwrap().as_ptr(),
-                        &mut cube_count,
-                        0,
-                        200_000,
-                        CString::new("%d").unwrap().as_ptr(),
-                    ) {
-                        self.cube_count = cube_count.max(0).min(200_000) as usize;
+                // cube slider
+                {
+                    let mut cube_count = self.cube_count as i32;
+                    unsafe {
+                        if imgui::sys::igSliderInt(
+                            CString::new("Cube Count").unwrap().as_ptr(),
+                            &mut cube_count,
+                            0,
+                            self.max_cubes as i32,
+                            CString::new("%d").unwrap().as_ptr(),
+                        ) {
+                            self.cube_count = cube_count.max(0).min(self.max_cubes as i32) as usize;
+                        }
+                    }
+                }
+                // light slider
+                {
+                    let mut light_slider = self.light_count as i32;
+                    unsafe {
+                        if imgui::sys::igSliderInt(
+                            CString::new("Light Count").unwrap().as_ptr(),
+                            &mut light_slider,
+                            0,
+                            self.max_lights as i32,
+                            CString::new("%d").unwrap().as_ptr(),
+                        ) {
+                            self.light_count =
+                                light_slider.max(0).min(self.max_lights as i32) as usize;
+                        }
                     }
                 }
             });

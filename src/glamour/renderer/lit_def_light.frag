@@ -11,8 +11,9 @@ uniform vec3 u_view_pos;
 struct PointLight {
   vec3 position;
 };
-#define NR_POINT_LIGHTS 32
+#define NR_POINT_LIGHTS 1019
 uniform PointLight u_point_lights[NR_POINT_LIGHTS];
+uniform int u_point_lights_count;
 
 out vec4 out_color;
 
@@ -29,7 +30,7 @@ void main() {
   vec3 view_dir = normalize(u_view_pos - frag_pos);
 
   vec3 lighting = vec3(0.0, 0.0, 0.0);
-  for (int i = 0; i < NR_POINT_LIGHTS; i++) {
+  for (int i = 0; i < u_point_lights_count; i++) {
     lighting += calc_point_light(u_point_lights[i], norm, frag_pos, view_dir,
                                  specular_strength);
   }
