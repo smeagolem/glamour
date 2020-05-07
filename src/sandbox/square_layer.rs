@@ -18,6 +18,7 @@ pub struct SquareLayer {
     light_transforms: Vec<Transform>,
     rng: rand_chacha::ChaCha8Rng,
     noise: FastNoise,
+    selected_resolution: usize,
 }
 
 impl SquareLayer {
@@ -45,6 +46,7 @@ impl SquareLayer {
             light_transforms: Vec::new(),
             rng,
             noise,
+            selected_resolution: 0,
         }
     }
 }
@@ -192,6 +194,28 @@ impl Layer for SquareLayer {
                             self.light_count =
                                 light_slider.max(0).min(self.max_lights as i32) as usize;
                         }
+                    }
+                }
+                // resolution combo box
+                let resolutions: Vec<(u32, u32)> =
+                    vec![(1280, 720), (1920, 1080), (2560, 1440), (3840, 2160)];
+                {
+                    if imgui::ComboBox::new(imgui::im_str!("Resolution")).build_simple(
+                        ui,
+                        &mut self.selected_resolution,
+                        &resolutions,
+                        &|r| {
+                            std::borrow::Cow::from(imgui::ImString::new(format!(
+                                "{} x {}",
+                                r.0, r.1
+                            )))
+                        },
+                    ) {
+                        let res = resolutions[self.selected_resolution];
+                        app_context
+                            .windowed_context()
+                            .window()
+                            .set_inner_size(glutin::dpi::PhysicalSize::new(res.0, res.1));
                     }
                 }
             });

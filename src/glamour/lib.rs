@@ -107,7 +107,7 @@ impl Application {
             windowed_context.context().get_proc_address(s) as _
         });
 
-        let physical_size = logical_size.to_physical::<u32>(hidpi_factor);
+        let physical_size = logical_size.to_physical::<f64>(hidpi_factor);
         unsafe {
             gl::Viewport(
                 0,
