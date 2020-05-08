@@ -4,7 +4,7 @@ use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
 use std::ffi::CString;
 
-pub struct SquareLayer {
+pub struct SandboxLayer {
     max_cubes: usize,
     max_lights: usize,
     fr: ForwardRenderer,
@@ -21,18 +21,18 @@ pub struct SquareLayer {
     selected_resolution: usize,
 }
 
-impl SquareLayer {
+impl SandboxLayer {
     pub fn new(name: &str) -> Self {
         let max_cubes = 200_000;
         let max_lights = 1019;
         let fr = ForwardRenderer::new(max_cubes, max_lights);
 
         let seed = 912;
-        let mut rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
+        let rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
         let mut noise = FastNoise::seeded(seed - 1);
         noise.set_frequency(0.1);
 
-        SquareLayer {
+        Self {
             max_cubes,
             max_lights,
             fr,
@@ -51,7 +51,7 @@ impl SquareLayer {
     }
 }
 
-impl Layer for SquareLayer {
+impl Layer for SandboxLayer {
     fn init(&mut self, app_context: &mut glamour::AppContext) {
         let size = app_context.windowed_context().window().inner_size();
         self.fr.resize(size.width, size.height);
@@ -69,22 +69,7 @@ impl Layer for SquareLayer {
             let cam_z = (time * speed).cos() * radius;
             self.camera.position = glm::vec3(cam_x, 0.0, cam_z);
             self.camera.target = glm::vec3(0.0, 0.0, 0.0);
-            // self.camera.fov = 90.0 + time.sin() * 30.0;
         }
-
-        // self.camera.position = glm::vec3(0.0, 0.0, 10.0);
-
-        // self.fr.clear();
-
-        // self.fr.shader().set_float4(
-        //     "u_color",
-        //     &glm::vec4(
-        //         (time * 1.0).sin() / 2.0 + 0.5,
-        //         (time * 2.0).sin() / 2.0 + 0.5,
-        //         (time * 5.0).sin() / 2.0 + 0.5,
-        //         1.0,
-        //     ),
-        // );
 
         let rng = &mut self.rng;
         let range = &self.cube_distribution;
@@ -106,21 +91,6 @@ impl Layer for SquareLayer {
         });
 
         self.fr.begin_draw(&self.camera);
-        // self.fr.draw_cube(&Transform {
-        //     position: glm::vec3(0.0, -5.0, 0.0),
-        //     rotation: glm::quat_identity(),
-        //     scale: glm::vec3(10.0, 1.0, 10.0),
-        // });
-        // self.fr.draw_quad(&Transform {
-        //     position: glm::vec3(-2.0, 1.0, 2.0),
-        //     rotation: glm::quat_identity(),
-        //     scale: glm::vec3(4.0, 4.0, 1.0),
-        // });
-        // self.fr.draw_triangle(&Transform {
-        //     position: glm::vec3(-2.0, -3.0, 2.0),
-        //     rotation: glm::quat_identity(),
-        //     scale: glm::vec3(4.0, 4.0, 1.0),
-        // });
 
         self.cube_transforms
             .par_iter_mut()

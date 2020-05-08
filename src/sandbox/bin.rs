@@ -1,11 +1,11 @@
 use glamour::Application;
 
-mod square_layer;
+mod sandbox_layer;
+use sandbox_layer::SandboxLayer;
 
 fn main() {
-    let mut app = Application::new("lit", 512, 490);
-    // let mut app = Application::new("lit", 1280, 720);
-    let square_layer = square_layer::SquareLayer::new("SquareLayer");
-    app.push_layer(Box::new(square_layer));
+    let mut app = Application::new("Glamour Sandbox", 512, 490);
+    let sandbox_layer = SandboxLayer::new("SandboxLayer");
+    app.push_layer(Box::new(sandbox_layer));
     app.run();
 }
