@@ -22,6 +22,7 @@ pub struct Renderer {
     lit_def_light: ShaderProgram,
     ndc_quad_vbo: VertBuf<VertBasic>,
     ndc_quad_vao: VertArray,
+    deferred: bool,
 }
 
 impl Renderer {
@@ -88,7 +89,16 @@ impl Renderer {
             lit_def_light,
             ndc_quad_vbo,
             ndc_quad_vao,
+            deferred: true,
         }
+    }
+
+    pub fn deferred(&self) -> bool {
+        self.deferred
+    }
+
+    pub fn set_deferred(&mut self, val: bool) {
+        self.deferred = val;
     }
 
     pub fn cube_shader(&self) -> &ShaderProgram {
@@ -136,12 +146,11 @@ impl Renderer {
 
     pub fn end_draw(&mut self) {
         self.clear();
-
-        // if forward
-        // self.draw_cubes();
-        // else
-        self.draw_cubes_def();
-
+        if self.deferred {
+            self.draw_cubes_def();
+        } else {
+            self.draw_cubes();
+        }
         self.draw_lights();
     }
 

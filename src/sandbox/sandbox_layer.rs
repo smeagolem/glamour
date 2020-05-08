@@ -7,7 +7,7 @@ use std::ffi::CString;
 pub struct SandboxLayer {
     max_cubes: usize,
     max_lights: usize,
-    fr: Renderer,
+    renderer: Renderer,
     name: String,
     time: std::time::Instant,
     camera: Camera,
@@ -19,6 +19,7 @@ pub struct SandboxLayer {
     rng: rand_chacha::ChaCha8Rng,
     noise: FastNoise,
     selected_resolution: usize,
+    selected_renderer: usize,
 }
 
 impl SandboxLayer {
@@ -35,7 +36,7 @@ impl SandboxLayer {
         Self {
             max_cubes,
             max_lights,
-            fr,
+            renderer: fr,
             name: name.to_string(),
             time: std::time::Instant::now(),
             camera: Camera::new(),
@@ -47,6 +48,7 @@ impl SandboxLayer {
             rng,
             noise,
             selected_resolution: 0,
+            selected_renderer: 0,
         }
     }
 }
@@ -54,7 +56,7 @@ impl SandboxLayer {
 impl Layer for SandboxLayer {
     fn init(&mut self, app_context: &mut glamour::AppContext) {
         let size = app_context.windowed_context().window().inner_size();
-        self.fr.resize(size.width, size.height);
+        self.renderer.resize(size.width, size.height);
     }
 
     fn on_frame_update(&mut self, app_context: &mut glamour::AppContext) {
@@ -90,7 +92,7 @@ impl Layer for SandboxLayer {
             ))
         });
 
-        self.fr.begin_draw(&self.camera);
+        self.renderer.begin_draw(&self.camera);
 
         self.cube_transforms
             .par_iter_mut()
@@ -102,7 +104,7 @@ impl Layer for SandboxLayer {
                     &glm::vec3(0.5, 1.0, 0.0),
                 );
             });
-        self.fr.set_cubes(&self.cube_transforms);
+        self.renderer.set_cubes(&self.cube_transforms);
 
         let distance = 50.0;
         let noise = &self.noise;
@@ -117,16 +119,16 @@ impl Layer for SandboxLayer {
                     noise.get_noise3d(0.0, 0.0, time + offset),
                 ) * distance
             });
-        self.fr.set_lights(&self.light_transforms);
+        self.renderer.set_lights(&self.light_transforms);
 
-        self.fr.end_draw();
+        self.renderer.end_draw();
     }
     fn name(&self) -> &String {
         &self.name
     }
     fn on_event(&mut self, event: &glutin::event::Event<()>, _: &mut glamour::AppContext) {
         self.camera.handle_event(event);
-        self.fr.handle_event(event);
+        self.renderer.handle_event(event);
     }
     fn on_imgui_update(&mut self, ui: &imgui::Ui, app_context: &mut glamour::AppContext) {
         imgui::Window::new(imgui::im_str!("Cubes!"))
@@ -167,9 +169,9 @@ impl Layer for SandboxLayer {
                     }
                 }
                 // resolution combo box
-                let resolutions: Vec<(u32, u32)> =
-                    vec![(1280, 720), (1920, 1080), (2560, 1440), (3840, 2160)];
                 {
+                    let resolutions: Vec<(u32, u32)> =
+                        vec![(1280, 720), (1920, 1080), (2560, 1440), (3840, 2160)];
                     if imgui::ComboBox::new(imgui::im_str!("Resolution")).build_simple(
                         ui,
                         &mut self.selected_resolution,
@@ -186,6 +188,19 @@ impl Layer for SandboxLayer {
                             .windowed_context()
                             .window()
                             .set_inner_size(glutin::dpi::PhysicalSize::new(res.0, res.1));
+                    }
+                }
+                // forward/deferred combo box
+                {
+                    let values: Vec<(&str, bool)> = vec![("deferred", true), ("forward", false)];
+                    if imgui::ComboBox::new(imgui::im_str!("Renderer")).build_simple(
+                        ui,
+                        &mut self.selected_renderer,
+                        &values,
+                        &|v| std::borrow::Cow::from(imgui::ImString::new(format!("{}", v.0))),
+                    ) {
+                        let def = values[self.selected_renderer];
+                        self.renderer.set_deferred(def.1);
                     }
                 }
             });
