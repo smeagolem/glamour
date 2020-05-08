@@ -1,5 +1,5 @@
 use bracket_noise::prelude::*;
-use glamour::{glm, Camera, ForwardRenderer, Layer, Transform};
+use glamour::{glm, Camera, Layer, Renderer, Transform};
 use rand::{Rng, SeedableRng};
 use rayon::prelude::*;
 use std::ffi::CString;
@@ -7,7 +7,7 @@ use std::ffi::CString;
 pub struct SandboxLayer {
     max_cubes: usize,
     max_lights: usize,
-    fr: ForwardRenderer,
+    fr: Renderer,
     name: String,
     time: std::time::Instant,
     camera: Camera,
@@ -25,7 +25,7 @@ impl SandboxLayer {
     pub fn new(name: &str) -> Self {
         let max_cubes = 200_000;
         let max_lights = 1019;
-        let fr = ForwardRenderer::new(max_cubes, max_lights);
+        let fr = Renderer::new(max_cubes, max_lights);
 
         let seed = 912;
         let rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);

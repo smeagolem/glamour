@@ -42,7 +42,7 @@ impl Layer for PerfMetricsLayer {
             return;
         }
         self.fps_timings
-            .insert(0, 1.0 / app_context.delta_time.as_secs_f32());
+            .insert(0, 1.0 / app_context.delta_time().as_secs_f32());
         self.fps_timings.truncate(self.fps_timings_max_capacity);
     }
 
@@ -53,8 +53,8 @@ impl Layer for PerfMetricsLayer {
             .position_pivot([1.0, 0.0])
             .position(
                 [
-                    app_context.windowed_context.window().inner_size().width as f32
-                        / app_context.imgui_platform.hidpi_factor() as f32,
+                    app_context.windowed_context().window().inner_size().width as f32
+                        / app_context.imgui_platform().hidpi_factor() as f32,
                     0.0,
                 ],
                 imgui::Condition::FirstUseEver,
@@ -64,46 +64,32 @@ impl Layer for PerfMetricsLayer {
             .build(&ui, || {
                 ui.text(format!(
                     "Event Poll Time: {:06.3} ms",
-                    app_context.event_poll_time.as_secs_f64() * 1_000.0
+                    app_context.event_poll_time().as_secs_f64() * 1_000.0
                 ));
                 ui.text(format!(
                     "Fixed Delta Time: {:06.3} ms (Timestep: {:06.3})",
                     self.fixed_delta_time.as_secs_f64() * 1_000.0,
-                    app_context.fixed_timestep.as_secs_f64() * 1_000.0,
+                    app_context.fixed_timestep().as_secs_f64() * 1_000.0,
                 ));
                 ui.text(format!(
                     "Delta Time: {:06.3} ms (Max Frame Rate: {:03.0} FPS)",
-                    app_context.delta_time.as_secs_f64() * 1_000.0,
-                    app_context.max_frame_rate,
+                    app_context.delta_time().as_secs_f64() * 1_000.0,
+                    app_context.max_frame_rate(),
                 ));
                 if ui
                     .drag_float(
                         imgui::im_str!("Max Frame Rate"),
-                        &mut app_context.max_frame_rate,
+                        &mut app_context.max_frame_rate(),
                     )
                     .min(30.0)
                     .max(300.0)
                     .display_format(imgui::im_str!("%g"))
                     .build()
                 {
-                    app_context.min_frame_timestep =
-                        std::time::Duration::from_secs_f32(1.0 / app_context.max_frame_rate);
+                    app_context.set_min_frame_timestep(std::time::Duration::from_secs_f32(
+                        1.0 / app_context.max_frame_rate(),
+                    ));
                 };
-
-                // calling before a ui frame is created causes UB
-                // unsafe {
-                //     if imgui::sys::igSliderFloat(
-                //         CString::new("Test Slider").unwrap().as_ptr(),
-                //         &mut max_frame_rate,
-                //         30.0,
-                //         300.0,
-                //         CString::new("%g").unwrap().as_ptr(),
-                //         1.0,
-                //     ) {
-                //         min_frame_timestep =
-                //             std::time::Duration::from_secs_f32(1.0 / max_frame_rate);
-                //     }
-                // }
 
                 let min_fps =
                     self.fps_timings.iter().fold(
@@ -155,7 +141,6 @@ impl Layer for PerfMetricsLayer {
             } => {
                 use std::io::prelude::*;
                 let serialized = serde_json::to_string(&self.fps_timings).unwrap();
-                // println!("serialized = {}", serialized);
                 let my_json = format!(r#"{{"fps": {}}}"#, serialized);
                 let mut file = std::fs::File::create("data.json").expect("create failed");
                 file.write_all(my_json.as_bytes()).expect("write failed");

@@ -1,5 +1,5 @@
 use criterion::{criterion_group, criterion_main, Criterion};
-use glamour::{ForwardRenderer, Transform, VertTrans};
+use glamour::{Renderer, Transform, VertTrans};
 
 fn criterion_benchmark(c: &mut Criterion) {
     let t = Transform::new();
@@ -16,7 +16,7 @@ fn criterion_benchmark(c: &mut Criterion) {
     transforms.resize_with(count, std::default::Default::default);
     c.bench_function("ForwardRenderer::set_vert_trans", |b| {
         b.iter(|| {
-            ForwardRenderer::set_vert_trans(&mut vertices, &transforms);
+            Renderer::set_vert_trans(&mut vertices, &transforms);
         })
     });
 }

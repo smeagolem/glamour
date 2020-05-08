@@ -1,15 +1,13 @@
+use super::meshes;
 use crate::{
     glm, Camera, GBuf, IndexBuf, ShaderBuilder, ShaderProgram, Texture, Transform, VertArray,
     VertBasic, VertBuf, VertTrans,
 };
 use gl;
 use rayon::prelude::*;
-use std::time::{Duration, Instant};
-
-// TODO: make Renderer trait to implement on Forward and Deferred.
 
 #[allow(dead_code)]
-pub struct ForwardRenderer {
+pub struct Renderer {
     cube_shader: ShaderProgram,
     cube_vao: VertArray,
     cube_vbo: VertBuf<VertBasic>,
@@ -26,53 +24,56 @@ pub struct ForwardRenderer {
     ndc_quad_vao: VertArray,
 }
 
-impl ForwardRenderer {
+impl Renderer {
     pub fn new(max_cubes: usize, max_lights: usize) -> Self {
         gl_call!(gl::Enable(gl::DEPTH_TEST));
-        // gl_call!(gl::Disable(gl::BLEND));
 
-        let cube_shader =
-            ShaderBuilder::new(include_str!("triangle.vert"), include_str!("triangle.frag"))
-                .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
-                .build();
+        let cube_shader = ShaderBuilder::new(
+            include_str!("shaders/lit_for.vert"),
+            include_str!("shaders/lit_for.frag"),
+        )
+        .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
+        .build();
         let img_path = crate::assets_path().join("tile_bookcaseFull.png");
         let cube_tex = Texture::new(&img_path);
         // TODO: check in draw functions if overflowing buffer, if so, draw (flush and reset).
-        let cube_vbo = VertBuf::<VertBasic>::new(tex_cube_verts());
+        let cube_vbo = VertBuf::<VertBasic>::new(meshes::cube::tex_cube_verts());
         let cube_trans_vbo = VertBuf::<VertTrans>::new(Vec::with_capacity(max_cubes));
-        let ibo = IndexBuf::new(tex_cube_inds());
+        let ibo = IndexBuf::new(meshes::cube::tex_cube_inds());
         let cube_vao = VertArray::new(&[&cube_vbo, &cube_trans_vbo], ibo);
 
-        let light_shader =
-            ShaderBuilder::new(include_str!("light.vert"), include_str!("light.frag"))
-                .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
-                .build();
+        let light_shader = ShaderBuilder::new(
+            include_str!("shaders/unlit_for.vert"),
+            include_str!("shaders/unlit_for.frag"),
+        )
+        .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
+        .build();
         // TODO: check in draw functions if overflowing buffer, if so, draw (flush and reset).
-        let light_vbo = VertBuf::<VertBasic>::new(tex_cube_verts());
+        let light_vbo = VertBuf::<VertBasic>::new(meshes::cube::tex_cube_verts());
         let light_trans_vbo = VertBuf::<VertTrans>::new(Vec::with_capacity(max_lights));
-        let ibo = IndexBuf::new(tex_cube_inds());
+        let ibo = IndexBuf::new(meshes::cube::tex_cube_inds());
         let light_vao = VertArray::new(&[&light_vbo, &light_trans_vbo], ibo);
 
         let lit_def_geo = ShaderBuilder::new(
-            include_str!("lit_def_geo.vert"),
-            include_str!("lit_def_geo.frag"),
+            include_str!("shaders/lit_def_geo.vert"),
+            include_str!("shaders/lit_def_geo.frag"),
         )
         .with_float4("u_color", glm::vec4(1.0, 1.0, 1.0, 1.0))
         .build();
 
         let lit_def_light = ShaderBuilder::new(
-            include_str!("lit_def_light.vert"),
-            include_str!("lit_def_light.frag"),
+            include_str!("shaders/lit_def_light.vert"),
+            include_str!("shaders/lit_def_light.frag"),
         )
         .build();
         lit_def_light.set_int("u_tex_pos", 0);
         lit_def_light.set_int("u_tex_norm", 1);
         lit_def_light.set_int("u_tex_alb_spec", 2);
 
-        let ndc_quad_vbo = VertBuf::new(ndc_quad_verts());
+        let ndc_quad_vbo = VertBuf::new(meshes::quad::ndc_quad_verts());
         let ndc_quad_vao = VertArray::new(&[&ndc_quad_vbo], IndexBuf::new(vec![]));
 
-        ForwardRenderer {
+        Renderer {
             cube_shader,
             cube_vao,
             cube_vbo,
@@ -136,11 +137,11 @@ impl ForwardRenderer {
     pub fn end_draw(&mut self) {
         self.clear();
 
+        // if forward
         // self.draw_cubes();
-        // self.draw_lights();
-
+        // else
         self.draw_cubes_def();
-        // self.draw_cubes();
+
         self.draw_lights();
     }
 
@@ -166,12 +167,12 @@ impl ForwardRenderer {
 
     pub fn set_cubes(&mut self, transforms: &[Transform]) {
         let vertices = self.cube_trans_vbo.vertices_mut();
-        ForwardRenderer::set_vert_trans(vertices, transforms);
+        Renderer::set_vert_trans(vertices, transforms);
     }
 
     pub fn set_lights(&mut self, transforms: &[Transform]) {
         let vertices = self.light_trans_vbo.vertices_mut();
-        ForwardRenderer::set_vert_trans(vertices, transforms);
+        Renderer::set_vert_trans(vertices, transforms);
         transforms.iter().enumerate().for_each(|(i, t)| {
             let name = format!("u_point_lights[{}].position", i);
             self.cube_shader.set_float3(&name, &t.position);
@@ -261,183 +262,4 @@ impl ForwardRenderer {
     pub fn draw_triangle(&mut self, _transform: &Transform) {
         todo!()
     }
-}
-
-fn tex_cube_verts() -> Vec<VertBasic> {
-    vec![
-        VertBasic {
-            position: glm::vec3(-0.5, -0.5, -0.5),
-            normal: glm::vec3(0.0, 0.0, -1.0),
-            tex_coords: glm::vec2(0.0, 0.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, -0.5, -0.5),
-            normal: glm::vec3(0.0, 0.0, -1.0),
-            tex_coords: glm::vec2(1.0, 0.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, 0.5, -0.5),
-            normal: glm::vec3(0.0, 0.0, -1.0),
-            tex_coords: glm::vec2(1.0, 1.0),
-        },
-        // 2
-        VertBasic {
-            position: glm::vec3(-0.5, 0.5, -0.5),
-            normal: glm::vec3(0.0, 0.0, -1.0),
-            tex_coords: glm::vec2(0.0, 1.0),
-        },
-        // 0
-        VertBasic {
-            position: glm::vec3(-0.5, -0.5, 0.5),
-            normal: glm::vec3(0.0, 0.0, 1.0),
-            tex_coords: glm::vec2(0.0, 0.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, -0.5, 0.5),
-            normal: glm::vec3(0.0, 0.0, 1.0),
-            tex_coords: glm::vec2(1.0, 0.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, 0.5, 0.5),
-            normal: glm::vec3(0.0, 0.0, 1.0),
-            tex_coords: glm::vec2(1.0, 1.0),
-        },
-        // 6
-        VertBasic {
-            position: glm::vec3(-0.5, 0.5, 0.5),
-            normal: glm::vec3(0.0, 0.0, 1.0),
-            tex_coords: glm::vec2(0.0, 1.0),
-        },
-        // 4
-        VertBasic {
-            position: glm::vec3(-0.5, 0.5, 0.5),
-            normal: glm::vec3(-1.0, 0.0, 0.0),
-            tex_coords: glm::vec2(1.0, 0.0),
-        },
-        VertBasic {
-            position: glm::vec3(-0.5, 0.5, -0.5),
-            normal: glm::vec3(-1.0, 0.0, 0.0),
-            tex_coords: glm::vec2(1.0, 1.0),
-        },
-        VertBasic {
-            position: glm::vec3(-0.5, -0.5, -0.5),
-            normal: glm::vec3(-1.0, 0.0, 0.0),
-            tex_coords: glm::vec2(0.0, 1.0),
-        },
-        // 10
-        VertBasic {
-            position: glm::vec3(-0.5, -0.5, 0.5),
-            normal: glm::vec3(-1.0, 0.0, 0.0),
-            tex_coords: glm::vec2(0.0, 0.0),
-        },
-        // 8
-        VertBasic {
-            position: glm::vec3(0.5, 0.5, 0.5),
-            normal: glm::vec3(1.0, 0.0, 0.0),
-            tex_coords: glm::vec2(1.0, 0.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, 0.5, -0.5),
-            normal: glm::vec3(1.0, 0.0, 0.0),
-            tex_coords: glm::vec2(1.0, 1.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, -0.5, -0.5),
-            normal: glm::vec3(1.0, 0.0, 0.0),
-            tex_coords: glm::vec2(0.0, 1.0),
-        },
-        // 14
-        VertBasic {
-            position: glm::vec3(0.5, -0.5, 0.5),
-            normal: glm::vec3(1.0, 0.0, 0.0),
-            tex_coords: glm::vec2(0.0, 0.0),
-        },
-        // 12
-        VertBasic {
-            position: glm::vec3(-0.5, -0.5, -0.5),
-            normal: glm::vec3(0.0, -1.0, 0.0),
-            tex_coords: glm::vec2(0.0, 1.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, -0.5, -0.5),
-            normal: glm::vec3(0.0, -1.0, 0.0),
-            tex_coords: glm::vec2(1.0, 1.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, -0.5, 0.5),
-            normal: glm::vec3(0.0, -1.0, 0.0),
-            tex_coords: glm::vec2(1.0, 0.0),
-        },
-        // 18
-        VertBasic {
-            position: glm::vec3(-0.5, -0.5, 0.5),
-            normal: glm::vec3(0.0, -1.0, 0.0),
-            tex_coords: glm::vec2(0.0, 0.0),
-        },
-        // 16
-        VertBasic {
-            position: glm::vec3(-0.5, 0.5, -0.5),
-            normal: glm::vec3(0.0, 1.0, 0.0),
-            tex_coords: glm::vec2(0.0, 1.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, 0.5, -0.5),
-            normal: glm::vec3(0.0, 1.0, 0.0),
-            tex_coords: glm::vec2(1.0, 1.0),
-        },
-        VertBasic {
-            position: glm::vec3(0.5, 0.5, 0.5),
-            normal: glm::vec3(0.0, 1.0, 0.0),
-            tex_coords: glm::vec2(1.0, 0.0),
-        },
-        // 22
-        VertBasic {
-            position: glm::vec3(-0.5, 0.5, 0.5),
-            normal: glm::vec3(0.0, 1.0, 0.0),
-            tex_coords: glm::vec2(0.0, 0.0),
-        },
-        // 20
-    ]
-}
-
-fn tex_cube_inds() -> Vec<u32> {
-    vec![
-        0, 1, 2, //
-        2, 3, 0, //
-        4, 5, 6, //
-        6, 7, 4, //
-        8, 9, 10, //
-        10, 11, 8, //
-        12, 13, 14, //
-        14, 15, 12, //
-        16, 17, 18, //
-        18, 19, 16, //
-        20, 21, 22, //
-        22, 23, 20, //
-    ]
-}
-
-fn ndc_quad_verts() -> Vec<VertBasic> {
-    vec![
-        VertBasic {
-            position: glm::vec3(-1.0, 1.0, 0.0),
-            normal: glm::vec3(0.0, 0.0, 1.0),
-            tex_coords: glm::vec2(0.0, 1.0),
-        },
-        VertBasic {
-            position: glm::vec3(-1.0, -1.0, 0.0),
-            normal: glm::vec3(0.0, 0.0, 1.0),
-            tex_coords: glm::vec2(0.0, 0.0),
-        },
-        VertBasic {
-            position: glm::vec3(1.0, 1.0, 0.0),
-            normal: glm::vec3(0.0, 0.0, 1.0),
-            tex_coords: glm::vec2(1.0, 1.0),
-        },
-        VertBasic {
-            position: glm::vec3(1.0, -1.0, 0.0),
-            normal: glm::vec3(0.0, 0.0, 1.0),
-            tex_coords: glm::vec2(1.0, 0.0),
-        },
-    ]
 }
