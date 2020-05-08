@@ -8,6 +8,7 @@ pub struct PerfMetricsLayer {
     fps_timings: Vec<f32>,
     frames_to_skip: u32,
     skipped_frames: u32,
+    max_frame_rate: f32,
 }
 
 impl PerfMetricsLayer {
@@ -21,6 +22,7 @@ impl PerfMetricsLayer {
             fps_timings: Vec::<f32>::with_capacity(fps_timings_max_capacity),
             frames_to_skip: 20,
             skipped_frames: 0,
+            max_frame_rate: 60.0,
         }
     }
 }
@@ -28,6 +30,10 @@ impl PerfMetricsLayer {
 impl Layer for PerfMetricsLayer {
     fn name(&self) -> &String {
         return &self.name;
+    }
+
+    fn init(&mut self, app_context: &mut AppContext) {
+        self.max_frame_rate = app_context.max_frame_rate();
     }
 
     fn on_fixed_update(&mut self, _: &mut AppContext) {
@@ -77,17 +83,14 @@ impl Layer for PerfMetricsLayer {
                     app_context.max_frame_rate(),
                 ));
                 if ui
-                    .drag_float(
-                        imgui::im_str!("Max Frame Rate"),
-                        &mut app_context.max_frame_rate(),
-                    )
+                    .drag_float(imgui::im_str!("Max Frame Rate"), &mut self.max_frame_rate)
                     .min(30.0)
                     .max(300.0)
                     .display_format(imgui::im_str!("%g"))
                     .build()
                 {
                     app_context.set_min_frame_timestep(std::time::Duration::from_secs_f32(
-                        1.0 / app_context.max_frame_rate(),
+                        1.0 / self.max_frame_rate,
                     ));
                 };
 

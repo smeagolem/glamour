@@ -40,6 +40,7 @@ impl AppContext {
     }
     pub fn set_min_frame_timestep(&mut self, timestep: Duration) {
         self.min_frame_timestep = timestep;
+        self.max_frame_rate = 1.0 / self.min_frame_timestep.as_secs_f32();
     }
 }
 
