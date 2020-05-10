@@ -10,6 +10,26 @@ module.exports = {
     repo: 'smeagolem/glamour',
     lastUpdated: true,
     sidebar: {
+      '/tech/': [
+        {
+          title: 'Technical Report',
+          collapsable: false,
+          sidebarDepth: 2,
+          children: [
+            ['', 'Introduction'],
+            'technology',
+            'foundation',
+            'architecture',
+            'main-loop',
+            'renderer',
+            'assets',
+            'data-collection',
+            'tests-docs',
+            'proposal-changes',
+            'future-work',
+          ],
+        },
+      ],
       '/dev/': [
         {
           title: 'Development Notes',
