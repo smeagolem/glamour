@@ -1,3 +1,3 @@
 # Data Collection
 
-helo
+Details on how data is collected.

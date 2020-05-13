@@ -1,3 +1,3 @@
 # Assets
 
-helo
+Details on asset and resource handling.
