@@ -13,9 +13,6 @@ The application is split into two main projects:
 
 **Figure 1:** A simplified module and dependency graph for the application.
 
-### Sandbox
-The Sandbox project initialises an **app** instance and attaches a **sandbox_layer** to it. The **sandbox_layer** is responsible for instructing the **renderer** what to render, e.g., _render 10,000 cubes at these randomly seeded positions from this camera angle_.
-
 ### app
 The app module is responsible for managing the window, event loop, and OpenGL context. This is where layers are stored and processed.
 
@@ -30,3 +27,6 @@ Since all the OpenGL functions are inherently _unsafe_, the `gl_call!` macro wil
 
 ### renderer
 This is what actually makes the draw calls. The renderer also manages the shaders, vertex arrays, and G-buffer, amongst other things.
+
+## Sandbox
+The Sandbox project initialises an **app** instance and attaches a **sandbox_layer** to it. The **sandbox_layer** is responsible for instructing the **renderer** what to render, e.g., _render 10,000 cubes at these randomly seeded positions from this camera angle_.
