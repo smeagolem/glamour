@@ -41,6 +41,8 @@
 
 \usepackage{graphicx}
 
+\usepackage{minted}
+
 \begin{document}
 
 %----------------------------------------------------------------------------------------
@@ -172,6 +174,25 @@ lorem ipsum dolor sit amet, consectetur adip lorem ipsum dolor sit amet, consect
 \subsection{this is great}
 \subsection{this is great}
 vert good sir!
+
+doing some cheeky code blocks\ldots
+
+\usemintedstyle{manni}
+\begin{minted}{c}
+int main() {
+  printf("hello, world");
+  return 0;
+}
+\end{minted}
+
+\begin{minted}{rust}
+fn main() {
+  let mut app = App::new("Glamour Sandbox", 512, 490);
+  let sandbox_layer = SandboxLayer::new("SandboxLayer");
+  app.push_layer(Box::new(sandbox_layer));
+  app.run();
+}
+\end{minted}
 
 \begin{figure}\centering
   \includegraphics[width=1\columnwidth]{module-graph.png}
