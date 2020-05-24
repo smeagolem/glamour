@@ -15,6 +15,7 @@ pub struct AppContext {
     imgui_platform: imgui_winit_support::WinitPlatform,
     event_poll_time: Duration,
     delta_time: Duration,
+    exit_requested: bool,
 }
 
 impl AppContext {
@@ -42,6 +43,9 @@ impl AppContext {
         self.min_frame_timestep = timestep;
         self.max_frame_rate = 1.0 / self.min_frame_timestep.as_secs_f32();
     }
+    pub fn exit(&mut self) {
+        self.exit_requested = true;
+    }
 }
 
 pub struct App {
@@ -56,10 +60,10 @@ pub struct App {
 impl App {
     pub fn new(title: &str, width: u32, height: u32) -> Self {
         let event_loop = EventLoop::new();
-        let logical_size = dpi::LogicalSize { width, height };
+        let physical_size = dpi::PhysicalSize { width, height };
         let wb = glutin::window::WindowBuilder::new()
             .with_title(title)
-            .with_inner_size(logical_size);
+            .with_inner_size(physical_size);
 
         let windowed_context = glutin::ContextBuilder::new()
             .with_vsync(false)
@@ -97,7 +101,6 @@ impl App {
             windowed_context.context().get_proc_address(s) as _
         });
 
-        let physical_size = logical_size.to_physical::<f64>(hidpi_factor);
         unsafe {
             gl::Viewport(
                 0,
@@ -136,7 +139,7 @@ impl App {
         let fixed_update_rate = 120.0;
         let mut next_fixed_update = Instant::now();
 
-        let max_frame_rate: f32 = 60.0;
+        let max_frame_rate: f32 = 300.0;
         let min_frame_timestep = Duration::from_secs_f32(1.0 / max_frame_rate);
 
         let mut app_context = AppContext {
@@ -147,6 +150,7 @@ impl App {
             imgui_platform,
             event_poll_time: Duration::from_secs(0),
             delta_time: Duration::from_secs(0),
+            exit_requested: false,
         };
 
         let mut next_frame_update = Instant::now();
@@ -161,6 +165,9 @@ impl App {
                   _: &EventLoopWindowTarget<()>,
                   control_flow: &mut ControlFlow| {
                 *control_flow = ControlFlow::Poll;
+                if app_context.exit_requested {
+                    *control_flow = ControlFlow::Exit;
+                }
                 match event {
                     Event::NewEvents(_) => {
                         // other application-specific logic

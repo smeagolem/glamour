@@ -26,7 +26,7 @@ pub struct Renderer {
 }
 
 impl Renderer {
-    pub fn new(max_cubes: usize, max_lights: usize) -> Self {
+    pub fn new(resolution: (u32, u32), max_cubes: usize, max_lights: usize) -> Self {
         gl_call!(gl::Enable(gl::DEPTH_TEST));
 
         let cube_shader = ShaderBuilder::new(
@@ -84,12 +84,12 @@ impl Renderer {
             light_vao,
             light_vbo,
             light_trans_vbo,
-            g_buf: GBuf::new(),
+            g_buf: GBuf::new(resolution.0, resolution.1),
             lit_def_geo,
             lit_def_light,
             ndc_quad_vbo,
             ndc_quad_vao,
-            deferred: true,
+            deferred: false,
         }
     }
 

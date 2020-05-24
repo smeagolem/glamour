@@ -9,14 +9,10 @@ pub struct GBuf {
 }
 
 impl GBuf {
-    pub fn new() -> Self {
+    pub fn new(width: u32, height: u32) -> Self {
         let mut id: u32 = 0;
         gl_call!(gl::GenFramebuffers(1, &mut id));
         gl_call!(gl::BindFramebuffer(gl::DRAW_FRAMEBUFFER, id));
-
-        // FIXME: these need to update when resizing.
-        let width: u32 = 512;
-        let height: u32 = 490;
 
         // position color buffer
         let mut pos_id: u32 = 0;

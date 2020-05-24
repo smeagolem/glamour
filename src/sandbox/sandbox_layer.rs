@@ -23,10 +23,10 @@ pub struct SandboxLayer {
 }
 
 impl SandboxLayer {
-    pub fn new(name: &str) -> Self {
+    pub fn new(name: &str, resolution: (u32, u32)) -> Self {
         let max_cubes = 200_000;
         let max_lights = 1019;
-        let fr = Renderer::new(max_cubes, max_lights);
+        let fr = Renderer::new(resolution, max_cubes, max_lights);
 
         let seed = 912;
         let rng = rand_chacha::ChaCha8Rng::seed_from_u64(seed);
