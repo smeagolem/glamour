@@ -54,7 +54,7 @@ impl DossierLayer {
             noise,
             test_run_set,
             test_run_timer: std::time::Instant::now(),
-            test_run_length: std::time::Duration::from_secs(5),
+            test_run_length: std::time::Duration::from_secs(20),
             test_run_index,
             test_run_fps_timings: Vec::new(),
             test_run_output: TestOutput {
