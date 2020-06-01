@@ -1,9 +1,4 @@
-*.pdf
-*.synctex.gz
-*.aux
-*.fdb_latexmk
-*.log
-*.fls
-*.toc
-_minted*
-*.out
+# ignore everything but the .tex files (and this file)
+*
+!*.tex
+!.gitignore

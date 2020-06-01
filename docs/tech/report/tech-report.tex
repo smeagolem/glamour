@@ -43,20 +43,37 @@
 
 \usepackage{mathpazo} % Palatino font
 
+\usepackage[english]{babel}
+
+\usepackage[
+  backend=biber,
+  style=authoryear-ibid,
+]{biblatex}
+\addbibresource{../../ICT40010.bib}
+
 \usepackage{graphicx}
 
 \usepackage{minted}
 \usemintedstyle{manni}
 
+\newcommand{\boxy}[1]{\colorbox{gray!10}{\mintinline{text}{#1}}}
+
+\usepackage[dvipsnames]{xcolor}
+\definecolor{FuchsiaPink}{HTML}{af30ed}
+\definecolor{ScooterBlue}{HTML}{30c9ed}
+
 \usepackage{hyperref}
 \hypersetup{
     colorlinks=true,
-    linkcolor=blue,
-    filecolor=magenta,
-    urlcolor=cyan,
+    allcolors=FuchsiaPink,
 }
 
+\usepackage{fontspec}
+\newfontface\emojifont{Twitter Color Emoji}
+\newcommand{\emoji}[1]{{\emojifont{#1}}}
+
 \begin{document}
+
 
 %----------------------------------------------------------------------------------------
 %	TITLE PAGE
@@ -133,103 +150,128 @@
   %	Logo
   %------------------------------------------------
 
-  %\vfill\vfill
-  %\includegraphics[width=0.2\textwidth]{placeholder.jpg}\\[1cm] % Include a department/university logo - this will require the graphicx package
+  \vfill\vfill
+  \includegraphics[width=0.2\textwidth]{../swin-logo.jpg}\\[1cm] % Include a department/university logo - this will require the graphicx package
 
   %----------------------------------------------------------------------------------------
 
-  \vfill % Push the date up 1/4 of the remaining page
+  % \vfill % Push the date up 1/4 of the remaining page
 
 \end{titlepage}
 
 %----------------------------------------------------------------------------------------
 
-\tableofcontents
 \pagenumbering{gobble}
+
+% Add an abstract (answer context, gap, method, outcomes, implications question.)
+\begin{abstract}
+  In real-time computer graphics, a thing rendering pipeline provides a workflow to draw things on the screen.
+  There are two contemporary methods to visualise geometry and shading, Forward Rendering and Deferred Rendering.
+  This paper specifies the technical details of implementing such rendering pipelines.
+  Using the Rust programming language for its performance and OpenGL as the definitive cross-platform graphics API, an application was created to benchmark the performance of the two rendering pipelines to determine which pipeline best suits what general usage scenarios.
+\end{abstract}
+
+\tableofcontents
+% \pagenumbering{gobble}
 \newpage
 \pagenumbering{arabic}
 
-\newcommand{\boxy}[1]{\colorbox{gray!10}{\mintinline{text}{#1}}}
+\section{Introduction}
+% Add Intro - should be pretty easy - it’s the abstract again but with more context/gap if you need too and a final blurb about the structure of the report. i.e. “In Section 2 … then Section 3 presents ….. “
+3D applications, such as video games, require efficient and approximate visualising of scene data; rendering geometry and shading it.
+Forward Rendering and Deferred Rendering are the two main ways to accomplish this.
+Forward Rendering draws and shades each fragment of each object, even if that pixel does not end up in the final image.
+Deferred rendering rasterises all the geometry data in the scene before doing shading calculations to avoid shading fragments that will not be visible.
+This paper contains implementation details for an application capable of comparing both pipelines.
+
+In Section~\ref{technology} and Section~\ref{foundation} of this paper, the technology stack for the application is discussed.
+Section~\ref{architecture} covers the overall architecture of the software, and Section~\ref{main-loop} goes over the main event loop.
+In Section~\ref{renderer}, details on the rendering pipeline implementations are specified.
 
 \setlength{\columnsep}{0.5cm}
 \begin{multicols}{2}
-  [
-    \section{Introduction}
-    TODO:\ introduction
-  ]
 
-  \section{Technology}
+  \section{Technology}\label{technology}
+  % Break “Technology” sections into groups - suggest primary (required) and supporting (VS Code GitHub) or similar. Then also do an “intro” section to explain the groups of technology used. Code snippets are fine here in this section. Remember, purpose of tech report is to help someone like yourself reproduce the apparatus/setup to be able to do what you have done, and to also understand why you have made the choice you have (so that they could modify as appropriate).
 
-  \subsection{Rust}
-  Rust is a systems prorgramming language that guarantees memeroy safety at compile time.
-  Rust doesn't need a garbage collector so the performance is excellent with little to no overhead.
-  There is zero-cost bidirectional interopability with C via the FFI\@;
-  a basic requirement for communicating with OpenGL on the system.
+  \subsection{Introduction}
+  The primary technologies used in the application are Rust and OpenGL\@.
+  Several supporting technologies were used to aid the development, including, Visual Studio Code and GitHub.
 
-  The modern Rust toolchain makes it trivial to have a fast and friendly developer experience.
+  \subsection{Primary}
 
-  \subsection{OpenGL}
-  OpenGL is the go-to cross-platform graphics API with a wealth of learning resources available.
-  Using OpenGL and Rust enables the application to run on Windows, Mac OS, and Linux without much platform specific thought. OpenGL \boxy{4.1} is minumum target version as that is the latest version supported on Mac OS\@.
+  \paragraph{\emoji{🦀} Rust.}
+  Rust is a systems programming language that guarantees memory safety at compile time.
+  Rust does not need a garbage collector so the performance is excellent with little to no overhead.
+  There is zero-cost bidirectional interoperability with C via the FFI\@;
+  a basic requirement for communicating with OpenGL on the system~\autocite{rust_programming_language_rust_2020}.
 
-  Vulkan was considered, but due the increased complexity of properly implementing a Vulkan based application, OpenGL was the simpler choice.
+  The modern Rust tool-chain makes it trivial to have a fast and friendly developer experience.
 
-  \subsection{VS Code}
-  Continuing with cross-platform tools, VS Code is the text-editor/IDE of choice.
-  Using the excellent rust-analyzer extension, it's a decent Rust IDE\@.
+  \paragraph{OpenGL.}
+  The OpenGL API is a standard in high-performance cross-platform graphics, with a wealth of learning resources available.
+  Using OpenGL and Rust enables the application to run on Windows, macOS, and Linux without much platform specific thought. OpenGL \boxy{4.1} is minimum target version as that is the latest version supported on macOS \autocite{opengl_opengl_2020}.
+
+  Vulkan was considered, but due to the increased complexity of properly implementing a Vulkan based application, OpenGL was the simpler choice \autocite{vulkan_vulkan_2020}.
+
+  \subsection{Supporting}
+
+  \paragraph{Visual Studio Code.}
+  Continuing with cross-platform tools, VS Code is the text-editor/IDE of choice \autocite{visual_studio_code_visual_2020}.
+  Using the excellent rust-analyzer extension, it is a decent Rust IDE\@.
   With various other extensions, writing shader code and documentation is also pleasant.
 
-  \subsection{GitHub}
+  \paragraph{GitHub.}
   Several services on GitHub are used:
   \begin{itemize}
-    \item It's the main git remote repository for the code
-    \item Issues are tracked on there
+    \item It is the main git remote repository for the source code
+    \item Issues can be tracked there
     \item Projects, labels, and milestones help triage those issues
     \item Actions are used to build and test the code (CI)
-    \item Pages is used to host this website which is deployed from Actions (CD).
+    \item Pages is used to host the project website which is deployed from Actions (CD).
   \end{itemize}
+  \autocite{github_github_2020}
 
-  \subsection{Vuepress}
-  Vuepress is a static site generator particularly designed for writing technical documentation. It is what powers this website.
+  \paragraph{VuePress.}
+  VuePress is a static site generator particularly designed for writing technical documentation \autocite{vuepress_vuepress_2020}.
+  It is used to generate the projet website.
 
-  \section{Foundation}
+  \section{Foundation}\label{foundation}
 
   \subsection{Crates}
   Rust's package manager, \textbf{Cargo}, allows code dependencies to be easily required by specifying them in a \boxy{Cargo.toml} file.
-  In Rust-land, packages are known as \textbf{Crates}.
+  In “Rust-land”, packages are known as \textbf{Crates}.
 
   Many crates are used in the application, with the most fundamental ones being outlined below.
 
-  \subsection{gl}
+  \subsection{\boxy{gl}}
   Unsafe bindings to raw OpenGL calls.
-  This is what allows the application to interop with OpenGL on the system.
-  If this crate didn't exist, then this application would have been written with C++ because generating function pointers for system APIs is not within the scope this project.
+  This is what allows the application to interoperate with OpenGL on the system.
+  If this crate did not exist, then this application would have been written with C++ because generating function pointers for system APIs is not within the scope this project.
 
-  \subsection{glutin}
+  \subsection{\boxy{glutin}}
   Manages windowing, events, and the OpenGL context.
   Another excellent create for cross-platform windowing and IO\@.
   The functions from the \textbf{gl} crate get loaded by the OpenGL context that \textbf{glutin} creates.
 
-  \subsection{imgui}
+  \subsection{\boxy{imgui}}
   Immediate Mode Graphical User Interface.
   Creating UI is out of the scope of this project, IMGUI is an incredibly popular rendering-API-agnostic library for creating development tooling.
   This crate provides some safe abstraction as well as bindings to every IMGUI function.
 
-  \subsection{nalgebra-glm}
-  This crate is a subset of linear algebra tools from the \textbf{nalgebra} crate specifically for math used in graphics programming.
+  \subsection{\boxy{nalgebra-glm}}
+  This crate is a subset of linear algebra tools from the \textbf{nalgebra} crate specifically for mathematics used in graphics programming.
 
-  \section{Architecture}
+  \section{Architecture}\label{architecture}
 
   \subsection{Modules}
-
-  \subsubsection{Overview}
   Rust's module system provides an easy way to group code for readability, reuse, and privacy.
-  The boxes in \textbf{Figure 1} are derivitive of the directory structure of the source code, with important modules having further explanation following.
+  The boxes in Figure~\ref{fig:module-graph} are derivative of the directory structure of the source code, with important modules having further explanation following.
 
   The application is split into two main projects:
   \begin{itemize}
-    \item \textbf{Sandbox}: a binary application to run and demonstrate the Glamour library.
-    \item \textbf{Glamour}: a library project containing all the rendering functionality.
+    \item \textbf{Sandbox}: A binary application to run and demonstrate the Glamour library.
+    \item \textbf{Glamour}: A library project containing all the rendering functionality.
   \end{itemize}
 
   \begin{figure}[H]
@@ -237,33 +279,33 @@
     \caption[Module graph]{\emph{A simplified module and dependency graph for the application.}}\label{fig:module-graph}
   \end{figure}
 
-  \subsubsection{app}
+  \paragraph{\boxy{app}}
   The app module is responsible for managing the window, event loop, and OpenGL context.
   This is where layers are stored and processed.
 
-  \subsubsection{layer}
+  \paragraph{\boxy{layer}}
   A layer is a trait (like an interface) that can handle events and do things on update loops.
 
-  \subsubsection{asset}
+  \paragraph{\boxy{asset}}
   This module provides a way to load files from the `assets` folder, which is copied relative to the executable on build.
 
-  \subsubsection{gl\_call}
+  \paragraph{\boxy{gl_call}}
   Since all the OpenGL functions are inherently \emph{unsafe}, the \boxy{gl_call!} macro will wrap a function and \emph{panic} if it errors, making OpenGL much easier to use.
 
-  \subsubsection{renderer}
+  \paragraph{\boxy{renderer}}
   This is what actually makes the draw calls.
   The renderer also manages the shaders, vertex arrays, and G-buffer, amongst other things.
 
   \subsection{Sandbox}
-  The Sandbox project initialises an \textbf{app} instance and attaches a \textbf{sandbox\_layer} to it.
-  The \textbf{sandbox\_layer} is responsible for instructing the \textbf{renderer} what to render, e.g., \emph{render 10,000 cubes at these randomly seeded positions from this camera angle}.
+  The Sandbox project initialises an \boxy{app} instance and attaches a \boxy{sandbox_layer} to it.
+  The \boxy{sandbox_layer} is responsible for instructing the \boxy{renderer} what to render, e.g., \emph{render 10,000 cubes at these randomly seeded positions from this camera angle}.
 
 \end{multicols}
 
-\section{Main Loop}
+\section{Main Loop}\label{main-loop}
 
 \subsection{Initialising}
-The \boxy{main} function in Sandbox only contains 4 lines:
+The \boxy{main} function in Sandbox only contains four lines:
 \begin{minted}{rust}
 fn main() {
     let mut app = glamour::App::new("Glamour Sandbox", 1920, 1080);
@@ -286,13 +328,13 @@ After this point, layers can be pushed to the app, and then run.
 
   \subsection{Layer}
   A \boxy{Layer} is a basic trait to handle events of distinct parts of the application.
-  Layers don't communicate with each other through the app, they're meant to be separate.
+  Layers do not communicate with each other through the app, they are meant to be separate.
   There are only two layers used in the app:
   \begin{itemize}
     \item \boxy{PerfMetricsLayer} for reporting performance metrics
     \item \boxy{SandboxLayer} is a place to store all Sandbox related things.
   \end{itemize}
-  \boxy{Layer} provides a few funtions that an implementation can use:
+  \boxy{Layer} provides a few functions that an implementation can use:
   \begin{itemize}
     \item \boxy{init()}
     \item \boxy{on_event()}
@@ -301,15 +343,15 @@ After this point, layers can be pushed to the app, and then run.
     \item \boxy{on_imgui_update()}
   \end{itemize}
 
-  Hopfully, those should be fairly self documentating.
+  Hopefully, those should be fairly self documenting.
 
   \subsection{Event Loop}
-  Calling \boxy{app.run()} kickstarts the main event loop, which is responsible for
+  Calling \boxy{app.run()} kick-starts the main event loop, which is responsible for
   \begin{itemize}
     \item Polling for events
     \item Managing fixed and frame updates
     \item Updating and rendering imgui
-    \item Calling the each layer's \boxy{Layer} trait functions at the appropriate point
+    \item Calling each layer's \boxy{Layer} trait functions at the appropriate point
     \item Swapping the frame buffer to actually show the rendered image on the screen.
   \end{itemize}
 
@@ -318,14 +360,15 @@ After this point, layers can be pushed to the app, and then run.
   This is \boxy{AppContext}, it provides some convenience to access things such as the window context and frame timings.
   This is passed to each \boxy{Layer} function.
 
-  \section{Renderer}
+  \section{Renderer}\label{renderer}
 
   TODO: Details on the rendering pipeline, how OpenGL is used, and performance metrics.
-  use lots of pictures here, it's the main visual element.
+  use lots of pictures here, it is the main visual element.
 
   \subsection{Pipeline}
 
   \subsubsection{Overview}
+
 
   \begin{figure}[H]
     \includegraphics[width=1\columnwidth]{../sandbox.png}
@@ -390,7 +433,7 @@ After this point, layers can be pushed to the app, and then run.
   \section{Assets}
 
   \subsection{Asset Management}
-  Since Cargo only deals with code, a \boxy{build.rs} script was created to facilitate copying the assets source folder to it's destination directory relative to the built executable.
+  Since Cargo only deals with code, a \boxy{build.rs} script was created to facilitate copying the assets source folder to its destination directory relative to the built executable.
 
   There also exists an \boxy{asset} module that exports a helper function \boxy{assets_path()} to obtain the assets directory at runtime, to make loading the assets easier.
 
@@ -406,29 +449,25 @@ After this point, layers can be pushed to the app, and then run.
 
   TODO: Details on how data is collected.
 
-  \section{Tests \& Docs}
+  \section{Code Quality}
 
   \subsection{Tests}
-  The Rust Toolchain comes with built in testing and documentation tool, they can even be combined.
-  Now, there aren't a lot of tests in source code at the time of writing, as a lot of it is OpenGL code, which is notoriously hard to ensure robustness because of the multitude of versions and implementations.
+  The Rust tool-chain comes with built in testing and documentation tool, they can even be combined.
+  Now, there are not a lot of tests in source code at the time of writing, as a lot of it is OpenGL code, which is notoriously hard to ensure robustness because of the multitude of versions and implementations.
 
   However, a few test experiments were completed as part of a bit of documentation, as rust will compile doc-comment example code and run it as integration tests.
 
   \subsection{Documentation}
-  There also isn't a lot of source code documentation available, but Cargo can generate API documentation from the source code into a web page.
+  There also is not a lot of source code documentation available, but Cargo can generate API documentation from the source code into a web page.
 
-  So, when code is pushed to the GitHub repository, it's built, tested, and the documentation is generated and put up on this website \url{https://glamour.davidjh.com/doc/glamour/index.html}.
+  So, when code is pushed to the GitHub repository, it is built, tested, and the documentation is generated and put up on this website \url{https://glamour.davidjh.com/doc/glamour/index.html}.
 
   \subsection{Benchmarks}
   Cargo has benchmark tests in nightly preview at the moment, but the \boxy{criterion} crate exists to aid in benchmarking functions in the meantime.
 
   The benchmarks run a some arbitrary code a bunch of times — generally thousands — and takes a sample of those to compare to the previous run, so the developer can track performance trends.
 
-  These benchmarks have been used to improve the performance of the \boxy{Transform} matrix calculation (which runs thousands of times a frame), and confirm where multi-threading improves performance (mainly by parallelising all those matrix transformations).
-
-  \section{Design Changes}
-
-  TODO: What changed from design to implementation.
+  These benchmarks have been used to improve the performance of the \boxy{Transform} matrix calculation (which runs thousands of times a frame), and confirm where multi-threading improves performance (mainly by paralleling all those matrix transformations).
 
   \section{Future Work}
 
@@ -470,5 +509,9 @@ After this point, layers can be pushed to the app, and then run.
 %   \includegraphics[width=0.7\columnwidth]{../rendering-pipeline.pdf}
 %   \caption[Short title]{Long title}\label{fig:ff}
 % \end{figure}
+
+\newpage
+
+\printbibliography{}
 
 \end{document}
