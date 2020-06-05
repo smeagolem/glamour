@@ -73,6 +73,7 @@ impl Layer for DossierLayer {
     fn init(&mut self, app_context: &mut glamour::AppContext) {
         let size = app_context.windowed_context().window().inner_size();
         self.renderer.resize(size.width, size.height);
+        // TODO: does setting the camera's aspect fix that problem?
     }
     fn on_fixed_update(&mut self, app_context: &mut glamour::AppContext) {
         if self.test_run_timer.elapsed() > self.test_run_length {
