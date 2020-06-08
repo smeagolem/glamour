@@ -1,6 +1,6 @@
 [package]
 name = "glamour"
-version = "0.9.1"
+version = "0.10.0"
 authors = ["David J Holland <stooge213@hotmail.com>"]
 edition = "2018"
 default-run = "sandbox"
