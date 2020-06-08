@@ -250,7 +250,7 @@ Using the excellent rust-analyzer extension, it is a decent Rust IDE\@.
 With various other extensions, writing shader code and documentation is also pleasant.
 
 \paragraph{GitHub.}
-Several services on GitHub are used:
+Several services on GitHub \autocite{github_github_2020} are used:
 \begin{itemize}
   \item It is the main git remote repository for the source code
   \item Issues can be tracked there
@@ -258,7 +258,6 @@ Several services on GitHub are used:
   \item Actions are used to build and test the code (CI)
   \item Pages is used to host the project website which is deployed from Actions (CD).
 \end{itemize}
-\autocite{github_github_2020}
 
 \paragraph{VuePress.}
 VuePress is a static site generator particularly designed for writing technical documentation \autocite{vuepress_vuepress_2020}.
@@ -379,9 +378,6 @@ This is \code{AppContext}, it provides some convenience to access things such as
 This is passed to each \code{Layer} function.
 
 \section{Renderer}\label{sec:renderer}
-
-% TODO: Details on the rendering pipeline, how OpenGL is used, and performance metrics.
-% use lots of pictures here, it is the main visual element.
 
 \subsection{Pipeline}
 
@@ -542,7 +538,34 @@ There are a total of eight shaders used in the rendering pipeline.
 \end{itemize}
 
 \subsection{Vertex Arrays}
-TODO: uses of VertBasic and VertTrans
+There are two types of vertex used in the application; \code{VertBasic} to hold mesh data, and \code{VertTrans} to hold instance data.
+
+\paragraph{\code{VertBasic}}
+A vertex array of this vertex type is used to construct a mesh.
+In the case of this application, that is just a cube or a quad.
+% \begin{noindent}
+  \begin{rustcode}
+struct VertBasic {
+    position: glm::Vec3,
+    normal: glm::Vec3,
+    tex_coords: glm::Vec2,
+}
+  \end{rustcode}
+% \end{noindent}
+
+\paragraph{\code{VertTrans}}
+A vertex array of this vertex type is used for GPU instancing.
+There would be one vertex per instance to determine that whole mesh's position, rotation, and scale via the \code{transform} component.
+The \code{normal} component is used to fix normal directions when non-uniform scaling is applied.
+% \begin{noindent}
+  \begin{rustcode}
+struct VertTrans {
+    transform: glm::Mat4,
+    normal: glm::Mat3,
+}
+  \end{rustcode}
+% \end{noindent}
+
 
 \section{Assets}
 
@@ -561,41 +584,78 @@ This is something that seems incredibly simple, but cannot be done with just C++
 
 \section{Data Collection}
 
-TODO: Details on how data is collected.
+\subsection{Dossier Binary}
+To facilitate the data collection, a duplicate of the Sandbox binary was made and named Dossier.
+The only difference between the two being that Dossier automatically changes the scene components and saves performance data to disk.
+
+There are several parameters which can be used to set up a data collection matrix; the display resolution, the rendering pipeline (forward or deferred), the number of lights, and the number of cubes.
+
+% \begin{noindent}
+  \begin{rustcode}
+// some example matrix parameters
+const RESOLUTIONS: [(u32, u32); 5] = [
+    (640, 360),
+    (1280, 720),
+    (1920, 1080),
+    (2560, 1440),
+    (3840, 2160),
+];
+const DEFERRED: [bool; 2] = [false, true];
+const LIGHTS: [u32; 5] = [0, 10, 100, 500, 1_000];
+const CUBES: [u32; 5] = [0, 1_000, 10_000, 100_000, 200_000];
+  \end{rustcode}
+% \end{noindent}
+
+Once those certain steps are specified, every unique combination will be iterated over for a set time.
+Dossier will collect the time (in nanoseconds) it takes to compute each frame, and for each combination, will calculate the minimum, maximum, and average time to save as a \code{.json} file and \code{.csv} file.
+
+\subsection{Performance Metrics}
+The \code{PerfMetricsLayer} is an IMGUI component that provides some visual about the recent performance of the application, as seen in Figure~\ref{fig:perf-metrics}.
+
+\begin{figure}
+  \begin{center}
+    \includegraphics[width=0.6\columnwidth]{../perf-metrics.png}
+  \end{center}
+  \caption[PerfMetricsLayer]{
+    \emph{
+      The Performance Metrics window shows the event poll, fixed delta, and delta time of the most recent frame.
+      A line graph visualises the past 300 frames as FPS (Frames Per Second), in addition to the min, max, and average.
+    }
+  }\label{fig:perf-metrics}
+\end{figure}
 
 \section{Code Quality}
 
 \subsection{Tests}
 The Rust tool-chain comes with built in testing and documentation tool, they can even be combined.
-Now, there are not a lot of tests in source code at the time of writing, as a lot of it is OpenGL code, which is notoriously hard to ensure robustness because of the multitude of versions and implementations.
+Now, there are not a lot of tests in source code at the time of writing, as a lot of it is OpenGL code, which is notoriously hard to ensure robustness because of the multitude of versions and vendor implementations.
 
 However, a few test experiments were completed as part of a bit of documentation, as rust will compile doc-comment example code and run it as integration tests.
 
 \subsection{Documentation}
 There also is not a lot of source code documentation available, but Cargo can generate API documentation from the source code into a web page.
 
-So, when code is pushed to the GitHub repository, it is built, tested, and the documentation is generated and put up on this website \url{https://glamour.davidjh.com/doc/glamour/index.html}.
+So, when code is pushed to the GitHub repository, it is built, tested, and the documentation is generated and put up on the Glamour Website\footnote{\url{https://glamour.davidjh.com/doc/glamour/index.html}}.
 
 \subsection{Benchmarks}
 Cargo has benchmark tests in nightly preview at the moment, but the \code{criterion} crate exists to aid in benchmarking functions in the meantime.
 
 The benchmarks run a some arbitrary code a bunch of times — generally thousands — and takes a sample of those to compare to the previous run, so the developer can track performance trends.
 
-These benchmarks have been used to improve the performance of the \code{Transform} matrix calculation (which runs thousands of times a frame), and confirm where multi-threading improves performance (mainly by paralleling all those matrix transformations).
+These benchmarks have been used to improve the performance of the \code{Transform} matrix calculation (which runs thousands of times a frame with all those rotating cubes), and confirm where multi-threading improves performance (mainly by paralleling all those matrix transformations).
 
 \section{Future Work}
+This software in its current state is purely for the purpose of research, and is not representative of any correct implementation for a real-world project.
 
-TODO: Details on issues and improvements that should be addressed, and speculate about other uses for the software.
+There are several issues, improvements, and potential other uses for the software, which will now be listed arbitrarily.
 
 \begin{itemize}
-  \item Graphics API abstraction, could port to Vulkan/Metal/DirectX/OpenGL-ES
-  \item OS Platform abstraction (maybe. glutin/winit handles a lot of that)
-  \item Separate window/rendering thread
-  \item Vertex Arrays have a lot of nonsense hard coded stuff
-  \item G-buffer/frame-buffers could do with a refactor
-  \item Shaders should be loaded from disk
-  \item Add actual docs, tests, and benchmarks
-  \item Once this is an acceptable renderer, I might add more game engine features. Maybe try and make a small game
+  \item \textbf{Separate window and rendering thread.} Many applications use a separate render thread to communicate with the GPU and to avoid blocking the main application thread.
+  \item \textbf{Refactor Vertex Arrays and Geometry Buffer.} There is a lot of hard-coded nonsense going on in those areas, many problems arose there and were fixed, but it's mostly an unreadable mess.
+  \item \textbf{Shaders should be loaded from disk.} From the architecture described, the shaders should not need to be part of the \code{renderer} in Glamour, and should exist in the binary application.
+  \item \textbf{Add actual docs, tests, and benchmarks.} With the time constraints of this project, this was simply overlooked, so it is quite difficult to understand what most of the code is doing, without consulting this report.
+  \item \textbf{Graphics API abstraction.} An interesting idea would be to port this application to other grahpics APIs to see what runs best on what platform. Some potential APIs are Vulkan, Metal, DirectX, and OpenGL-ES. There also exists a crate, \code{gfx-hal}, that mimicks the Vulkan API with Rust bindings, but also applies that abstraction to the other graphics APIs mentioned. This allows an unprecedented level of control over the rendering pipeline, while also being cross-platform.
+  \item \textbf{Make a small game.} As a continuation of rendering pipeline exploration, it would be educational to attempt to implement a small game. This would be an actual real-world test of the rendering pipelines.
 \end{itemize}
 
 \newpage
