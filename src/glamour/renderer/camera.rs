@@ -5,7 +5,7 @@ pub struct Camera {
     pub position: glm::Vec3,
     pub target: glm::Vec3,
     pub fov: f32,
-    aspect: f32,
+    pub aspect: f32,
 }
 
 impl Camera {

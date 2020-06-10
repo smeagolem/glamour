@@ -18,6 +18,7 @@ pub struct DossierLayer {
     noise: FastNoise,
     test_run_set: Vec<TestRun>,
     test_run_timer: std::time::Instant,
+    test_run_warmup_length: std::time::Duration,
     test_run_length: std::time::Duration,
     test_run_index: usize,
     test_run_fps_timings: Vec<u128>,
@@ -25,7 +26,13 @@ pub struct DossierLayer {
 }
 
 impl DossierLayer {
-    pub fn new(name: &str, resolution: (u32, u32), test_run_set: Vec<TestRun>) -> Self {
+    pub fn new(
+        name: &str,
+        resolution: (u32, u32),
+        test_run_set: Vec<TestRun>,
+        warmup: u32,
+        length: u32,
+    ) -> Self {
         let max_cubes = 200_000;
         let max_lights = 1019;
         let mut renderer = Renderer::new(resolution, max_cubes, max_lights);
@@ -54,18 +61,51 @@ impl DossierLayer {
             noise,
             test_run_set,
             test_run_timer: std::time::Instant::now(),
-            test_run_length: std::time::Duration::from_secs(20),
+            test_run_warmup_length: std::time::Duration::from_secs(warmup as u64),
+            test_run_length: std::time::Duration::from_secs(length as u64),
             test_run_index,
             test_run_fps_timings: Vec::new(),
             test_run_output: TestOutput {
                 time: 0,
+                warmup,
+                length,
                 data: Vec::new(),
             },
         }
     }
-
     fn test_run(&self) -> TestRun {
         self.test_run_set[self.test_run_index]
+    }
+    fn collect_timing_results(&mut self) {
+        let min = *self.test_run_fps_timings.iter().min().unwrap();
+        let max = *self.test_run_fps_timings.iter().max().unwrap();
+        let avg = self.test_run_fps_timings.iter().sum::<u128>()
+            / self.test_run_fps_timings.len() as u128;
+        self.test_run_output.data.push(TestRunResult {
+            run: self.test_run(),
+            result: TestResult { min, max, avg },
+        });
+        self.test_run_fps_timings.clear();
+    }
+    fn save_data_to_disk(&mut self) {
+        use std::io::prelude::*;
+        let id = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .unwrap()
+            .as_millis();
+        self.test_run_output.time = id;
+        let serialized = serde_json::to_string(&self.test_run_output).unwrap();
+        let filename = format!("{}.json", id);
+        let mut file = std::fs::File::create(filename).expect("create failed");
+        file.write_all(serialized.as_bytes()).expect("write failed");
+        {
+            let mut wtr = csv::Writer::from_path(format!("{}.csv", id)).unwrap();
+            self.test_run_output.data.iter().for_each(|x| {
+                wtr.serialize(x.result).unwrap();
+            });
+            wtr.flush().unwrap();
+        }
+        println!("data written to file");
     }
 }
 
@@ -73,20 +113,11 @@ impl Layer for DossierLayer {
     fn init(&mut self, app_context: &mut glamour::AppContext) {
         let size = app_context.windowed_context().window().inner_size();
         self.renderer.resize(size.width, size.height);
-        // TODO: does setting the camera's aspect fix that problem?
+        self.camera.aspect = size.width as f32 / size.height as f32;
     }
     fn on_fixed_update(&mut self, app_context: &mut glamour::AppContext) {
-        if self.test_run_timer.elapsed() > self.test_run_length {
-            let min = *self.test_run_fps_timings.iter().min().unwrap();
-            let max = *self.test_run_fps_timings.iter().max().unwrap();
-            let avg = self.test_run_fps_timings.iter().sum::<u128>()
-                / self.test_run_fps_timings.len() as u128;
-            self.test_run_output.data.push(TestRunResult {
-                run: self.test_run(),
-                result: TestResult { min, max, avg },
-            });
-
-            self.test_run_fps_timings.clear();
+        if self.test_run_timer.elapsed() > (self.test_run_warmup_length + self.test_run_length) {
+            self.collect_timing_results();
             self.test_run_timer = std::time::Instant::now();
             self.test_run_index += 1;
             if self.test_run_index < self.test_run_set.len() {
@@ -95,24 +126,7 @@ impl Layer for DossierLayer {
                 self.light_count = test_run.lights as _;
                 self.renderer.set_deferred(test_run.deferred);
             } else {
-                use std::io::prelude::*;
-                let id = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_millis();
-                self.test_run_output.time = id;
-                let serialized = serde_json::to_string(&self.test_run_output).unwrap();
-                let filename = format!("{}.json", id);
-                let mut file = std::fs::File::create(filename).expect("create failed");
-                file.write_all(serialized.as_bytes()).expect("write failed");
-                {
-                    let mut wtr = csv::Writer::from_path(format!("{}.csv", id)).unwrap();
-                    self.test_run_output.data.iter().for_each(|x| {
-                        wtr.serialize(x.result).unwrap();
-                    });
-                    wtr.flush().unwrap();
-                }
-                println!("data written to file");
+                self.save_data_to_disk();
                 app_context.exit();
             }
         }
@@ -121,8 +135,10 @@ impl Layer for DossierLayer {
         let delta_time = app_context.delta_time().as_secs_f32();
         let time = self.time.elapsed().as_secs_f32();
 
-        self.test_run_fps_timings
-            .push(app_context.delta_time().as_nanos());
+        if self.test_run_timer.elapsed() > self.test_run_warmup_length {
+            self.test_run_fps_timings
+                .push(app_context.delta_time().as_nanos());
+        }
 
         // animate camera
         {
