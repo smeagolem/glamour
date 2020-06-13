@@ -1,0 +1,381 @@
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Academic Title Page
+% LaTeX Template
+% Version 2.0 (17/7/17)
+%
+% This template was downloaded from:
+% http://www.LaTeXTemplates.com
+%
+% Original author:
+% WikiBooks (LaTeX - Title Creation) with modifications by:
+% Vel (vel@latextemplates.com)
+%
+% License:
+% CC BY-NC-SA 3.0 (http://creativecommons.org/licenses/by-nc-sa/3.0/)
+%
+% Instructions for using this template:
+% This title page is capable of being compiled as is. This is not useful for
+% including it in another document. To do this, you have two options:
+%
+% 1) Copy/paste everything between \begin{document} and \end{document}
+% starting at \begin{titlepage} and paste this into another LaTeX file where you
+% want your title page.
+% OR
+% 2) Remove everything outside the \begin{titlepage} and \end{titlepage}, rename
+% this file and move it to the same directory as the LaTeX file you wish to add it to.
+% Then add \input{./<new filename>.tex} to your LaTeX file where you want your
+% title page.
+%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%----------------------------------------------------------------------------------------
+%	PACKAGES AND OTHER DOCUMENT CONFIGURATIONS
+%----------------------------------------------------------------------------------------
+
+\documentclass[11pt]{article}
+
+\usepackage[a4paper, margin={2cm, 3cm}]{geometry}
+
+\usepackage{multicol}
+
+\usepackage[utf8]{inputenc} % Required for inputting international characters
+\usepackage[T1]{fontenc} % Output font encoding for international characters
+
+\usepackage{mathpazo} % Palatino font
+
+\usepackage[english]{babel}
+\usepackage{csquotes}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\fancyhf{}
+\rhead{D.J. Holland}
+\lhead{ICT40010 — Research Report}
+\rfoot{\thepage}
+
+\usepackage[toc,page]{appendix}
+
+\usepackage[
+  backend=biber,
+]{biblatex}
+\addbibresource{../../ICT40010.bib}
+
+\usepackage{graphicx}
+
+\usepackage{minted}
+\usemintedstyle{manni}
+\newminted{rust}{
+  autogobble,
+  bgcolor=gray!10,
+  fontsize=\footnotesize,
+  samepage,
+}
+\newmintinline{rust}{bgcolor=gray!10}
+\def\rust{\rustinline}
+\newmintinline{text}{bgcolor=gray!10}
+\def\code{\textinline}
+
+\usepackage[dvipsnames]{xcolor}
+\definecolor{FuchsiaPink}{HTML}{af30ed}
+\definecolor{ScooterBlue}{HTML}{30c9ed}
+
+\usepackage{hyperref}
+\hypersetup{
+    colorlinks=true,
+    allcolors=FuchsiaPink,
+}
+
+\usepackage{fontspec}
+\newfontface\emojifont{Twitter Color Emoji}
+\newcommand{\emoji}[1]{{\emojifont{#1}}}
+
+% \usepackage{pgfplots}
+
+% \usepackage{filecontents}
+% \begin{filecontents*}{data.csv}
+%   min,max,avg
+%   3333400,3508624,3339428
+%   3333378,3503090,3339712
+%   3333388,3394145,3339213
+%   4956730,6405593,5561731
+%   27910872,30017652,29159187
+%   3330164,53269932,3591565
+%   3333490,3485312,3339783
+%   3333226,3479624,3339425
+%   7929630,10788166,9064394
+%   32618952,34970334,33390051
+%   3333237,3478768,3338963
+%   3333358,3371851,3338318
+%   3333303,32700345,6513392
+%   38573035,42248249,40159530
+%   113376605,120017429,116978969
+%   3333004,3368786,3338665
+%   3333733,77577666,14687106
+%   3341002,99495628,27497440
+%   118402484,125087299,121400110
+%   330656582,341476958,336928584
+%   3332733,3524289,3342311
+%   3333315,28709836,3590316
+%   3340778,96427123,48864434
+%   344543184,356602594,351093078
+%   912672550,912672550,912672550
+%   3332782,3348864,3338272
+%   3333159,3374808,3339088
+%   3332977,3538749,3342647
+%   5933801,21524405,8229011
+%   29196583,39673661,32725063
+%   3333118,31476296,4781756
+%   3333297,37010872,5053198
+%   3332432,24817865,5770058
+%   9063973,12260164,10678923
+%   35112622,38120969,36422114
+%   17260657,19470855,18280655
+%   3336435,132907023,18332806
+%   3333828,76838384,19099024
+%   5600161,40768613,24198861
+%   43936360,54033737,49376229
+%   52678362,55236886,53914765
+%   3333739,382217655,54188749
+%   3350932,219124438,54695925
+%   5920143,111353347,59538425
+%   83091854,84955928,83933094
+%   134695479,138703348,136766750
+%   132944730,138898976,136180223
+%   135582178,270626137,157031598
+%   140975194,144129043,142376131
+%   174880377,177765368,176125589
+% \end{filecontents*}
+
+\begin{document}
+
+% I’m going to tell you thing → tell thing → I’ve told you thing.
+% Shouldn’t be confused/surprised why something is being shown.
+
+%----------------------------------------------------------------------------------------
+%	TITLE PAGE
+%----------------------------------------------------------------------------------------
+
+\begin{titlepage} % Suppresses displaying the page number on the title page and the subsequent page counts as page 1
+  \newcommand{\HRule}{\rule{\linewidth}{0.5mm}} % Defines a new command for horizontal lines, change thickness here
+
+  \center{} % Centre everything on the page
+
+  %------------------------------------------------
+  %	Headings
+  %------------------------------------------------
+
+  % Main heading such as the name of your university/college
+  \textsc{\LARGE Swinburne University of Technology}\\[1.5cm]
+
+  % Major heading such as course name
+  \textsc{
+    \Large
+    Bachelor of Engineering\\
+    (Software Engineering)\\
+    (Honours)
+  }\\[0.5cm]
+
+  % Minor heading such as course title
+  \textsc{\large ICT40010 Research Report A}\\[0.5cm]
+
+  %------------------------------------------------
+  %	Title
+  %------------------------------------------------
+
+  \HRule{}\\[0.4cm]
+
+  % Title of your document
+  {\huge\bfseries Forward Rendering and Deferred Rendering: An Analysis of Real-Time Graphics Pipelines}\\[0.2cm]
+
+  \HRule{}\\[1.5cm]
+
+  %------------------------------------------------
+  %	Author(s)
+  %------------------------------------------------
+
+  \begin{minipage}{0.4\textwidth}
+    \begin{flushleft}
+      \large
+      \textit{Author}\\
+      D.J. \textsc{Holland}
+    \end{flushleft}
+  \end{minipage}
+  {~}
+  \begin{minipage}{0.4\textwidth}
+    \begin{flushright}
+      \large
+      \textit{Supervisors}\\
+      Dr.\ Clinton \textsc{Woodward}\\
+      Dr.\ Charlotte \textsc{Pierce}
+    \end{flushright}
+  \end{minipage}
+
+  % If you don't want a supervisor, uncomment the two lines below and comment the code above
+  %{\large\textit{Author}}\\
+  %John \textsc{Smith} % Your name
+
+  %------------------------------------------------
+  %	Date
+  %------------------------------------------------
+
+  \vfill\vfill\vfill % Position the date 3/4 down the remaining page
+
+  {\large\today} % Date, change the \today to a set date if you want to be precise
+
+  %------------------------------------------------
+  %	Logo
+  %------------------------------------------------
+
+  \vfill\vfill
+  \includegraphics[width=0.2\textwidth]{../../swin-logo.jpg}\\[1cm] % Include a department/university logo - this will require the graphicx package
+
+  %----------------------------------------------------------------------------------------
+
+  % \vfill % Push the date up 1/4 of the remaining page
+
+\end{titlepage}
+
+%----------------------------------------------------------------------------------------
+%	ABSTRACT
+%----------------------------------------------------------------------------------------
+
+\pagenumbering{gobble}
+
+\begin{abstract}
+  % - Domain/context
+  % - gap
+  % - Method
+  % - Results/outcomes
+  % - Implications
+  TODO: abstract
+\end{abstract}
+
+\newpage
+
+%----------------------------------------------------------------------------------------
+%	CONTENTS
+%----------------------------------------------------------------------------------------
+
+\tableofcontents
+% \pagenumbering{gobble}
+\newpage
+\pagenumbering{arabic}
+
+%----------------------------------------------------------------------------------------
+%	REPORT
+%----------------------------------------------------------------------------------------
+
+\section{Introduction}
+% - Restate domain / gap
+% - Purpose of report. Present-tense
+% - Purpose of research. Past-tense
+% - Background
+%     - Reference TR
+%     - Screenshot?
+TODO: intro
+
+% \begin{tikzpicture}
+%   \begin{axis}
+%     \addplot[
+%       YellowGreen,
+%       only marks,
+%     ]
+%     table[
+%         col sep=comma,
+%         x expr=\coordindex + 1,
+%         y=min,
+%       ] {data.csv};
+%     \addplot[
+%       Orange,
+%       only marks,
+%     ]
+%     table[
+%         col sep=comma,
+%         x expr=\coordindex + 1,
+%         y=max,
+%       ] {data.csv};
+%     \addplot[
+%       Cerulean,
+%       only marks,
+%       error bars/.cd,
+%       y dir=both,
+%       y explicit,
+%     ]
+%     table[
+%         col sep=comma,
+%         x expr=\coordindex + 1,
+%         y=avg,
+%         y error plus expr=\thisrow{max} - \thisrow{avg},
+%         y error minus expr=\thisrow{avg} - \thisrow{min},
+%       ] {data.csv};
+%     \addplot[mark=none] {(1/60)*1000000000};
+%   \end{axis}
+% \end{tikzpicture}
+
+\section{Method}
+% - Restate question
+%     - What is the measurable difference between forward/deferred?
+% - Justify configuration
+%     - How parameter changes help answer question
+%     - What are my assumptions?
+% - Configuration details
+%     - Constants? But (small) why?
+%     - Parameter sequence
+%     - Ranges (appendix?)
+%     - Example table
+%         - Screenshot of test run
+
+TODO: method
+
+\section{Results}
+% - Results (facts/data)
+%     - Small words on data.
+%         - Answer the question(s)
+%         - Empirical evidence
+%         - No speculation, only observation
+%     - MEGA CHART (landscape)
+%     - Other charts, e.g.
+%         - Variation from avg
+%     - Full data table in appendices
+
+TODO: results
+
+\section{Discussion}
+% - Discussion (opinions)
+%     - About Data
+%     - About method
+%     - About THE FUTURE
+%         - Backlog teuxdeux list
+
+TODO: discussion
+
+\section{Conclusion}
+% - Conclusion
+%     - No new, only restate (dog meme)
+%     - Emphasise the main outcome/implication
+
+TODO: conclusion
+
+\section{Acknowledgements}
+
+TODO: acknowledgements
+
+\newpage
+
+%----------------------------------------------------------------------------------------
+%	BIBLIOGRAPHY
+%----------------------------------------------------------------------------------------
+
+\printbibliography[heading=bibintoc]{}
+
+\newpage
+
+%----------------------------------------------------------------------------------------
+%	APPENDICES
+%----------------------------------------------------------------------------------------
+
+\begin{appendices}
+
+\end{appendices}
+
+\end{document}

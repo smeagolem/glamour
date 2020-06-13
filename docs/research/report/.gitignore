@@ -1,0 +1,4 @@
+# ignore everything but the .tex files (and this file)
+*
+!*.tex
+!.gitignore
