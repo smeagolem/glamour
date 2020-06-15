@@ -46,26 +46,31 @@ pub struct TestSpec {
 
 /*
 Some math:
-To have exponential increase, we take the maximum and determine the exponent.
-
-log(max)/log(n) = exp
+an exponential function that passes through two points:
+(0, 1) and (5, 200_000)
+y = ab^x
+solve the simulateneous equations (using the internet) and you get
+a = 1, b = 200_000^(1/5)
+so,
+y = (200_000^(1/5))^x
 
 n = number of steps
 m = max value
 i = current step
 s = step value
 
-[(i+1)^(ln(m+1)/ln(n))]-1=s
+I want the function to equal 0 at i = 0, so let's fudge it a bit.
 
-[(3+1)^(ln(200_000+1)/ln(5))]-1=36_817
+[(m+1)^(1/(n-1))^i]-1=s
+
+[(200_000+1)^(1/(5-1))^3]-1=9_456
 
 */
 
 fn step_value(m: u32, n: usize, i: usize) -> u32 {
     let m = (m + 1) as f64;
-    let n = n as f64;
-    let i = (i + 1) as f64;
-    i.powf(m.ln() / n.ln()).round() as u32 - 1
+    let n = (n - 1) as f64;
+    m.powf(1f64 / n).powi(i as i32).round() as u32 - 1
 }
 
 const RESOLUTIONS: [(u32, u32); 5] = [
