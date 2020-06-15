@@ -77,10 +77,21 @@ impl DossierLayer {
         self.test_run_set[self.test_run_index]
     }
     fn collect_timing_results(&mut self) {
-        let min = *self.test_run_fps_timings.iter().min().unwrap();
-        let max = *self.test_run_fps_timings.iter().max().unwrap();
-        let avg = self.test_run_fps_timings.iter().sum::<u128>()
-            / self.test_run_fps_timings.len() as u128;
+        let min = *self
+            .test_run_fps_timings
+            .iter()
+            .min()
+            .unwrap_or(&self.test_run_length.as_nanos());
+        let max = *self
+            .test_run_fps_timings
+            .iter()
+            .max()
+            .unwrap_or(&self.test_run_length.as_nanos());
+        let avg = if self.test_run_fps_timings.len() != 0 {
+            self.test_run_fps_timings.iter().sum::<u128>() / self.test_run_fps_timings.len() as u128
+        } else {
+            self.test_run_length.as_nanos()
+        };
         self.test_run_output.data.push(TestRunResult {
             run: self.test_run(),
             result: TestResult { min, max, avg },
