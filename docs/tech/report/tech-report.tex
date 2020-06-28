@@ -118,6 +118,7 @@
 
   % Minor heading such as course title
   \textsc{\large ICT40010 Research Report A}\\[0.5cm]
+  \textsc{\large Forward Rendering and Deferred Rendering:\\An Analysis of Real-Time Graphics Pipelines}\\[0.5cm]
 
   %------------------------------------------------
   %	Title
@@ -207,10 +208,10 @@
 
 \section{Introduction}
 % Add Intro - should be pretty easy - it’s the abstract again but with more context/gap if you need too and a final blurb about the structure of the report. i.e. “In Section 2 … then Section 3 presents ….. “
-3D applications, such as video games, require efficient and approximate visualising of scene data; rendering geometry and shading it.
+3D applications, such as video games, require efficient and approximate visualising of scene data; rendering and shading geometry.
 Forward Rendering and Deferred Rendering are the two main ways to accomplish this.
-Forward Rendering draws and shades each fragment of each object, even if that pixel does not end up in the final image.
-Deferred rendering rasterises all the geometry data in the scene before doing shading calculations to avoid shading fragments that will not be visible.
+Forward Rendering draws and shades each fragment (potential pixel) of each object, even if that fragment does not end up in the final image.
+Deferred Rendering rasterises\footnote{Taking mesh vertex data and converting it into a pixel format.} all the geometry data in the scene before doing shading calculations to avoid shading fragments that will not be visible.
 This paper contains implementation details for an application capable of comparing both pipelines.
 
 In Section~\ref{sec:technology} and Section~\ref{sec:foundation} of this paper, the technology stack for the application is discussed.
@@ -223,17 +224,16 @@ In Section~\ref{sec:renderer}, details on the rendering pipeline implementations
 % Break “Technology” sections into groups - suggest primary (required) and supporting (VS Code GitHub) or similar. Then also do an “intro” section to explain the groups of technology used. Code snippets are fine here in this section. Remember, purpose of tech report is to help someone like yourself reproduce the apparatus/setup to be able to do what you have done, and to also understand why you have made the choice you have (so that they could modify as appropriate).
 
 \subsection{Introduction}
-The primary technologies used in the application are Rust and OpenGL\@.
-Several supporting technologies were used to aid the development, including, Visual Studio Code and GitHub.
+The primary technologies used in the application are Rust\footnote{\url{https://www.rust-lang.org/}} and OpenGL\footnote{\url{https://www.opengl.org/}}.
+Several supporting technologies were used to aid the development, including, Visual Studio Code\footnote{\url{https://code.visualstudio.com/}} and GitHub\footnote{\url{https://github.com/}}.
 
 \subsection{Primary}
 
-\paragraph{\emoji{🦀} Rust.}
+\paragraph{Rust. \emoji{🦀}}
 Rust is a systems programming language that guarantees memory safety at compile time.
-Rust does not need a garbage collector so the performance is excellent with little to no overhead.
-There is zero-cost bidirectional interoperability with C via the FFI\@;
+Rust does not use a garbage collector, so the performance is excellent with little to no overhead.
+There is zero-cost bidirectional interoperability with C code;
 a basic requirement for communicating with OpenGL on the system~\autocite{rust_programming_language_rust_2020}.
-
 The modern Rust tool-chain makes it trivial to have a fast and friendly developer experience.
 
 \paragraph{OpenGL.}
@@ -246,7 +246,7 @@ Vulkan was considered, but due to the increased complexity of properly implement
 
 \paragraph{Visual Studio Code.}
 Continuing with cross-platform tools, VS Code is the text-editor/IDE of choice \autocite{visual_studio_code_visual_2020}.
-Using the excellent rust-analyzer extension, it is a decent Rust IDE\@.
+Using the excellent rust-analyzer\footnote{\url{https://rust-analyzer.github.io/}} extension, it is a decent Rust IDE\@.
 With various other extensions, writing shader code and documentation is also pleasant.
 
 \paragraph{GitHub.}
@@ -260,15 +260,14 @@ Several services on GitHub \autocite{github_github_2020} are used:
 \end{itemize}
 
 \paragraph{VuePress.}
-VuePress is a static site generator particularly designed for writing technical documentation \autocite{vuepress_vuepress_2020}.
+VuePress\footnote{\url{https://vuepress.vuejs.org/}} is a static site generator particularly designed for writing technical documentation \autocite{vuepress_vuepress_2020}.
 It is used to generate the projet website.
 
 \section{Foundation}\label{sec:foundation}
 
 \subsection{Crates}
 Rust's package manager, \textbf{Cargo}, allows code dependencies to be easily required by specifying them in a \code{Cargo.toml} file.
-In “Rust-land”, packages are known as \textbf{Crates}.
-
+In “Rust-land”, packages are known as \textbf{Crates}, which are sourced from the online repository \url{https://crates.io/}.
 Many crates are used in the application, with the most fundamental ones being outlined below.
 
 \subsection{\code{gl}}
@@ -283,7 +282,7 @@ The functions from the \code{gl} crate get loaded by the OpenGL context that \co
 
 \subsection{\code{imgui}}
 Immediate Mode Graphical User Interface.
-Creating UI is out of the scope of this project, IMGUI is an incredibly popular rendering-API-agnostic library for creating development tooling.
+Creating UI is out of the scope of this project, IMGUI\footnote{\url{https://github.com/ocornut/imgui}} is an incredibly popular rendering-API-agnostic library for creating development tooling.
 This crate provides some safe abstraction as well as bindings to every IMGUI function.
 
 \subsection{\code{nalgebra-glm}}
@@ -301,11 +300,17 @@ The application is split into two main projects:
   \item \textbf{Glamour}: A library project containing all the rendering functionality.
 \end{itemize}
 
-\begin{figure}
+\begin{figure}[h!]
   \begin{center}
     \includegraphics[width=0.7\columnwidth]{../module-graph.pdf}
   \end{center}
-  \caption[Module graph]{\emph{A simplified module and dependency graph for the application.}}\label{fig:module-graph}
+  \caption[Module graph]{
+    \emph{
+      A module and dependency graph for the application.
+      Note: Some modules are hidden and/or connections are not shown.
+      This is to simplify the diagram to only show the significant parts.
+    }
+  }\label{fig:module-graph}
 \end{figure}
 
 \paragraph{\code{app}}
@@ -334,13 +339,13 @@ The \code{sandbox_layer} is responsible for instructing the \code{renderer} what
 \subsection{Initialising}
 The \code{main} function in Sandbox only contains four lines. See Appendix~\ref{app:sandbox-main}.
 Calling the \code{new} function\footnote{\rust{glamour::App::new(title: &str, width: u32, height: u32)}} will do the following:
-\begin{itemize}
-  \item Create a new event loop from the \code{glutin} crate to handle OS I/O
+\begin{enumerate}
+  \item Create a new event loop from the \code{glutin} crate to handle operating system input and output
   \item Build a window with the supplied \code{title}, \code{width}, and \code{height}
   \item Load OpenGL within that window's context
   \item Load imgui
   \item Initialise the Layer stack.
-\end{itemize}
+\end{enumerate}
 After this point, layers can be pushed to the app, and then run.
 
 \subsection{Layer}
@@ -383,14 +388,14 @@ This is passed to each \code{Layer} function.
 
 \subsubsection{Overview}
 
-\begin{figure}
+\begin{figure}[h!]
   \begin{center}
     \includegraphics[width=0.6\columnwidth]{../sandbox.png}
   \end{center}
   \caption[Sandbox screenshot]{
     \emph{
       Running the application results in the scene above.
-      A bunch of rotating textured cubes, with lights travelling around the world.
+      Many rotating textured cubes, with lights travelling around the world.
     }
   }\label{fig:sandbox-screenshot}
 \end{figure}
@@ -399,11 +404,11 @@ In the main event loop, when a draw is requested (either by the OS or when the f
 This layer hook is generally where interaction with the Renderer should happen, and pipeline start and end before the frame buffers are swapped.
 
 To draw the scene in Figure~\ref{fig:sandbox-screenshot}, the Sandbox application follows the pipeline visualised in Figure~\ref{fig:rendering-pipeline}.
-The pipeline is the same for forward rendering and deferred rendering, with the difference being in how the entities (the cubes) are drawn and shaded in the \textbf{End Draw} phase.
+The pipeline is the same for Forward Rendering and Deferred Rendering, with the difference being in how the entities (the cubes) are drawn and shaded in the \textbf{End Draw} phase.
 
 \textbf{Begin Draw}, \textbf{Update Entities}, and \textbf{Update Lights} all function to transform and send data to the GPU before drawing, which actually happens in \textbf{End Draw}.
 
-\begin{figure}
+\begin{figure}[h!]
   \begin{center}
     \includegraphics[width=0.7\columnwidth]{../rendering-pipeline.pdf}
   \end{center}
@@ -434,29 +439,29 @@ The follow sections describe the implementation differences of forward and defer
 Further explanation of the theory behind forward and deferred can be found at an online article\autocite{owens_forward_2013}.
 
 \subsubsection{Forward}
-Forward rendering draws the cubes in a single pass to the default frame buffer.
+Forward Rendering draws the cubes in a single pass to the default frame buffer.
 The vertex shader transforms the vertices and outputs fragment positions, normal directions, and texture coordinates.
 The fragment shader receives those parameters along with the details of each light to calculate the shading for every fragment.
-
 After drawing, the depth test throws away fragments that are not visible.
-
-In Appendix~\ref{app:draw-cubes-forward}, some code for forward rendering is explained with comments.
+\\
+\\
+In Appendix~\ref{app:draw-cubes-forward}, some code for Forward Rendering is explained with comments.
 
 \subsubsection{Deferred}
-Deferred rendering is a two-step process consisting of the geometry pass and the lighting pass.
+Deferred Rendering is a two-step process consisting of the geometry pass and the lighting pass.
 
 \paragraph{Geometry Pass.}
-This pass uses a \emph{Geometry Buffer}, which is a collection of \emph{Frame Buffers} (which are textures) to hold the exact information output by the vertex shader; the same vertex shader used in forward rendering.
-
+This pass uses a \emph{Geometry Buffer}, which is a collection of \emph{Frame Buffers} (which are textures) to hold the exact information output by the vertex shader; the same vertex shader used in Forward Rendering.
 After drawing, the depth test throws away fragments that are not visible.
 
 \paragraph{Lighting Pass.}
 This pass takes those \emph{Frame Buffers} and uses the information stored in them to calculate the shading.
-The lighting calculation is exactly the same as in forward rendering, with the only difference being the parameters come from the textures and not the vertex shader.
+The lighting calculation is exactly the same as in Forward Rendering, with the only difference being the parameters come from the textures and not the vertex shader.
 
-The final image is then projected onto on a quad that covers the entire screen and depth information from the geometry pass is copied back to the default depth buffer, so that other objects can be rendered with correct depth testing, e.g., the light cubes, which are always forward rendered.\\
-
-In Appendix~\ref{app:draw-cubes-deferred}, some code for deferred rendering is explained with comments.
+The final image is then projected onto on a quad that covers the entire screen and depth information from the geometry pass is copied back to the default depth buffer, so that other objects can be rendered with correct depth testing, e.g., the light cubes, which are always forward rendered.
+\\
+\\
+In Appendix~\ref{app:draw-cubes-deferred}, some code for Deferred Rendering is explained with comments.
 
 \subsection{OpenGL}
 % abstracting OpenGL and error handling, \code{gl_call}.
@@ -468,6 +473,8 @@ Since this application supports OpenGL 4.1 and above, the error handling is part
 To package these issues into a flexible solution, Rust's extensive macro system was used.
 The \rust{gl_call!()} macro exists to wrap the function in an \rust{unsafe} block, and, if in debug mode, \rust{panic!} (crash) if there are any errors.
 OpenGL functions are now all wrapped with this macro, for example, \rust{gl_call!(gl::GenBuffers(1, &mut id));}.
+\\
+\\
 Appendix~\ref{app:gl-call} contains the macro code.
 
 \subsection{MVP Transforms}
@@ -524,7 +531,7 @@ let shader_lit_for = ShaderBuilder::new(
   \end{rustcode}
 % \end{noindent}
 
-\subsubsection{Forward v Deferred}
+\subsubsection{Forward and Deferred}
 There are a total of eight shaders used in the rendering pipeline.
 \begin{itemize}
   \item \code{lit_for.vert} \textbf{Lit Forward Vertex Shader} takes vertex data and outputs fragment position, normal direction, and texture coordinates
@@ -579,8 +586,7 @@ Some files are loaded directly into the application binary at compile time.
 This includes the imgui font and the shaders.
 Rust has a couple of helper macros that make this trivial, namely, \code{include_bytes!()} and \code{include_str!()}.
 
-This is something that seems incredibly simple, but cannot be done with just C++ without changing the original file to make it a raw string.
-\emph{50 points to \textbf{Rust}lepuff!}
+This is something that seems incredibly simple, but cannot be done with just C++ without changing the original file to make it a raw string\footnote{\emph{50 points to \textbf{Rust}lepuff!}}.
 
 \section{Data Collection}
 
@@ -612,7 +618,7 @@ Dossier will collect the time (in nanoseconds) it takes to compute each frame, a
 \subsection{Performance Metrics}
 The \code{PerfMetricsLayer} is an IMGUI component that provides some visual about the recent performance of the application, as seen in Figure~\ref{fig:perf-metrics}.
 
-\begin{figure}
+\begin{figure}[h!]
   \begin{center}
     \includegraphics[width=0.6\columnwidth]{../perf-metrics.png}
   \end{center}
@@ -646,7 +652,6 @@ These benchmarks have been used to improve the performance of the \code{Transfor
 
 \section{Future Work}
 This software in its current state is purely for the purpose of research, and is not representative of any correct implementation for a real-world project.
-
 There are several issues, improvements, and potential other uses for the software, which will now be listed arbitrarily.
 
 \begin{itemize}
@@ -673,8 +678,9 @@ There are several issues, improvements, and potential other uses for the softwar
 %----------------------------------------------------------------------------------------
 
 \begin{appendices}
-  \section{Sandbox Main Function}\label{app:sandbox-main}
-  % \begin{noindent}
+  \noindent\begin{minipage}{\textwidth}
+    \section{Sandbox Main Function}\label{app:sandbox-main}
+    % \begin{noindent}
   \begin{rustcode}
 fn main() {
     let mut app = glamour::App::new("Glamour Sandbox", 1920, 1080);
@@ -684,14 +690,16 @@ fn main() {
 }
   \end{rustcode}
   % \end{noindent}
+    \vspace{\parskip}\end{minipage}
 
-  \section{Draw Cubes Forward}\label{app:draw-cubes-forward}
-  % \begin{noindent}
+  \noindent\begin{minipage}{\textwidth}
+    \section{Draw Cubes Forward}\label{app:draw-cubes-forward}
+    % \begin{noindent}
   \begin{rustcode}
 fn draw_cubes_forward(&self) {
     // send transform data (position, rotation, scale) to the GPU
     self.cube_trans_vbo.set_data();
-    // select the lit shader for forward rendering
+    // select the lit shader for Forward Rendering
     self.lit_for_shader.bind();
     // select the cube texture
     self.cube_tex.bind();
@@ -712,9 +720,11 @@ fn draw_cubes_forward(&self) {
 }
   \end{rustcode}
   % \end{noindent}
+    \vspace{\parskip}\end{minipage}
 
-  \section{Draw Cubes Deferred}\label{app:draw-cubes-deferred}
-  % \begin{noindent}
+  \noindent\begin{minipage}{\textwidth}
+    \section{Draw Cubes Deferred}\label{app:draw-cubes-deferred}
+    % \begin{noindent}
   \begin{rustcode}
 fn draw_cubes_deferred(&self) {
     // send transform data (position, rotation, scale) to the GPU
@@ -725,7 +735,7 @@ fn draw_cubes_deferred(&self) {
     self.g_buf.bind();
     {
         gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
-        // select the geometry lit shader for deferred rendering
+        // select the geometry lit shader for Deferred Rendering
         self.lit_def_geo.bind();
         // select the cube texture
         self.cube_tex.bind();
@@ -749,7 +759,7 @@ fn draw_cubes_deferred(&self) {
     // lighting pass
     gl_call!(gl::Clear(gl::COLOR_BUFFER_BIT | gl::DEPTH_BUFFER_BIT));
     {
-        // select the lighting lit shader for deferred rendering
+        // select the lighting lit shader for Deferred Rendering
         self.lit_def_light.bind();
         // select the frame buffers from the geometry buffer
         self.g_buf.bind_bufs();
@@ -768,9 +778,11 @@ fn draw_cubes_deferred(&self) {
 }
   \end{rustcode}
   % \end{noindent}
+    \vspace{\parskip}\end{minipage}
 
-  \section{\code{gl_call!}}\label{app:gl-call}
-  % \begin{noindent}
+  \noindent\begin{minipage}{\textwidth}
+    \section{\code{gl_call!}}\label{app:gl-call}
+    % \begin{noindent}
     \begin{rustcode}
 #[macro_export]
 macro_rules! gl_call {
@@ -794,6 +806,7 @@ macro_rules! gl_call {
 }
     \end{rustcode}
     % \end{noindent}
+    \vspace{\parskip}\end{minipage}
 
 \end{appendices}
 
