@@ -1,0 +1,1 @@
+initSidebarItems({"enum":[["VertAttrType",""]],"struct":[["IndexBuf",""],["VertArray",""],["VertAttr",""],["VertBuf",""],["VertLayout",""]],"trait":[["Vert",""],["VertBuffer",""]]});

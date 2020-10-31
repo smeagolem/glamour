@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["gl_clear_errors",""],["gl_get_error","Pop an error from the OpenGL error state."],["gl_get_error_name","Get the enum name of an OpenGL error."],["gl_get_errors",""]]});

@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["glamour"] = [{"text":"impl Drop for ShaderProgram","synthetic":false,"types":[]},{"text":"impl Drop for Texture","synthetic":false,"types":[]},{"text":"impl Drop for VertArray","synthetic":false,"types":[]},{"text":"impl Drop for IndexBuf","synthetic":false,"types":[]},{"text":"impl&lt;T:&nbsp;Vert&gt; Drop for VertBuf&lt;T&gt;","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()

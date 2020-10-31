@@ -1,0 +1,3 @@
+(function() {var implementors = {};
+implementors["glamour"] = [{"text":"impl Debug for VertLayout","synthetic":false,"types":[]},{"text":"impl Debug for VertAttr","synthetic":false,"types":[]},{"text":"impl Debug for VertAttrType","synthetic":false,"types":[]},{"text":"impl Debug for VertBasic","synthetic":false,"types":[]},{"text":"impl Debug for VertTrans","synthetic":false,"types":[]}];
+if (window.register_implementors) {window.register_implementors(implementors);} else {window.pending_implementors = implementors;}})()
