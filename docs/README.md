@@ -18,7 +18,7 @@ features:
 
 ```sh
 # checkout repo
-git clone https://github.com/smeagolem/glamour.git
+git clone https://github.com/denovodavid/glamour.git
 
 # navigate to directory
 cd glamour

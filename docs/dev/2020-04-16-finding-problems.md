@@ -82,8 +82,8 @@ This can then be passed to a **vertex buffer** and then a **vertex array**, whic
 
 In retrospect, this was a very necessary fundamental step, although annoying at the time because I just wanted to render a texture. 🤷
 
-Full code [here](https://github.com/smeagolem/glamour/commit/775b0cd3b3535cf7ab8e424932f3170215ea8e37).
+Full code [here](https://github.com/denovodavid/glamour/commit/775b0cd3b3535cf7ab8e424932f3170215ea8e37).
 
 ## Some other wins
-- Refactored layers and the main loop to cleft some responsibility in twain — [commit](https://github.com/smeagolem/glamour/commit/5d6db2cd2a3a09e2215937184da03a38f2dd9067).
-- Added a shader builder to simplify compiling shaders — [commit](https://github.com/smeagolem/glamour/commit/4d60d17651c46628802c6c1589d7e65ca8d6d030).
+- Refactored layers and the main loop to cleft some responsibility in twain — [commit](https://github.com/denovodavid/glamour/commit/5d6db2cd2a3a09e2215937184da03a38f2dd9067).
+- Added a shader builder to simplify compiling shaders — [commit](https://github.com/denovodavid/glamour/commit/4d60d17651c46628802c6c1589d7e65ca8d6d030).

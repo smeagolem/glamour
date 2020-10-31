@@ -7,7 +7,7 @@ module.exports = {
       { text: 'Development Notes', link: '/dev/' },
       { text: 'API', link: '/doc/glamour/index.html', target: '_blank', rel: 'noopener noreferrer' },
     ],
-    repo: 'smeagolem/glamour',
+    repo: 'denovodavid/glamour',
     lastUpdated: true,
     sidebar: {
       '/tech/': [
